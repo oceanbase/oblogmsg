@@ -172,6 +172,7 @@ struct LogRecInfo {
         m_endInfo(NULL),
         m_lrDataArea(NULL),
         m_tblMeta(NULL),
+        m_dbMeta(NULL),
         m_expiredMetaDataCollections(NULL),
         useDMB(false),
         m_reservedMemory(false)

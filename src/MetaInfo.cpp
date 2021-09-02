@@ -443,6 +443,8 @@ struct TableMetaInfo : public MetaInfo {
   TableMetaInfo(const void* ptr, size_t size)
       : MetaInfo(sizeof(TableMetaHeader), false), m_tblMetaHeader(NULL), m_dbMeta(NULL)
   {
+    m_pkIndice = NULL;
+    m_ukIndice = NULL;
     parse(ptr, size);
   }
 
@@ -749,7 +751,7 @@ void ITableMeta::setPKs(const char* pks)
 {
   m_tbl->m_tblMetaHeader->m_pksOffset = m_tbl->m_data.appendString(pks);
   char* cpks = new char[strlen(pks) + 1];
-  char* src = strcpy(cpks, pks);
+  char* src = strncpy(cpks, pks, strlen(pks) + 1);
   char *token, *save;
   do {
     token = strtok_r(src, ",", &save);
@@ -804,7 +806,7 @@ void ITableMeta::setUKs(const char* uks)
 {
   m_tbl->m_tblMetaHeader->m_uksOffset = m_tbl->m_data.appendString(uks);
   char* cpks = new char[strlen(uks) + 1];
-  char* src = strcpy(cpks, uks);
+  char* src = strncpy(cpks, uks, strlen(uks) + 1);
   char *token, *save;
   do {
     token = strtok_r(src, ",", &save);

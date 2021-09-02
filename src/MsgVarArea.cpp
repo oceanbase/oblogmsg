@@ -174,7 +174,7 @@ size_t MsgVarArea::appendStringArray(const BinLogBuf* sa, size_t size)
   STRLEN_TYPE* slen = new STRLEN_TYPE[count];
   const char* strData[count];
   size_t offset = m_data.length() - sizeof(VarAreaHeader);
-
+  memset(strData, 0, sizeof(const char*) * count);
   for (i = 0; i < count; ++i) {
     if (sa[i].buf == NULL)
       slen[i] = 0;
@@ -417,7 +417,7 @@ int MsgVarArea::getField(size_t offset, const void*& ptr, size_t& size)
 {
   if (!m_parsedOK && !m_creating)
     return -1;
-  if (offset < 0 || offset >= m_areaSize)
+  if (offset >= m_areaSize)
     return -2;
   const char* p = m_areaPtr + offset;
   DT_TYPE* t = (DT_TYPE*)p;
@@ -494,7 +494,7 @@ int MsgVarArea::getString(size_t offset, const char*& s, size_t& length)
 {
   if (!m_parsedOK && !m_creating)
     return -1;
-  if (offset < 0 || offset >= m_areaSize)
+  if (offset >= m_areaSize)
     return -2;
   const char* p = m_areaPtr + offset;
   DT_TYPE* t = (DT_TYPE*)p;
@@ -535,7 +535,7 @@ int MsgVarArea::getStringArray(size_t offset, const char*& saPtr, size_t& count,
 {
   if (!m_parsedOK && !m_creating)
     return -1;
-  if (offset < 0 || offset >= m_areaSize)
+  if (offset >= m_areaSize)
     return -2;
   const char* p = m_areaPtr + offset;
   DT_TYPE* t = (DT_TYPE*)p;
@@ -571,7 +571,7 @@ void MsgVarArea::getString(size_t offset, const int off, char*& v, size_t& size)
   const char* pos = m_areaPtr + offset;
   COUNT_TYPE count = *(COUNT_TYPE*)(pos + sizeof(DT_TYPE));
   toLeEndian(&count, sizeof(COUNT_TYPE));
-  if (offset < 0 || offset >= m_areaSize || off < 0 || off > count) {
+  if (offset >= m_areaSize || off < 0 || off > count) {
     v = NULL;
     size = 0;
     return;
@@ -614,7 +614,7 @@ int MsgVarArea::getArray(size_t offset, const void*& a, size_t& elSize, size_t& 
 
   if (!m_parsedOK && !m_creating)
     return -1;
-  if (offset < 0 || offset >= m_areaSize)
+  if (offset >= m_areaSize)
     return -2;
   const char* p = m_areaPtr + offset;
   DT_TYPE* t = (DT_TYPE*)p;
