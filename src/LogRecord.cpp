@@ -143,13 +143,12 @@ struct LogRecInfo {
         m_reservedMemory(false)
   {
     m_posInfo = new PosOfLogMsg_vc;
-    memset(m_posInfo, 0, sizeof(PosOfLogMsg_vc));
+    memset(m_posInfo, -1, sizeof(PosOfLogMsg_vc));
     m_lrDataArea = new MsgVarArea();
     m_endInfo = new EndOfLogMsg;
     m_lrDataArea->appendArray((uint8_t*)m_posInfo, sizeof(PosOfLogMsg_vc));
 
     memset(m_endInfo, 0, sizeof(EndOfLogMsg));
-    memset(m_posInfo, -1, sizeof(PosOfLogMsg_vc));
     m_posInfo->m_lrVersion = LOGREC_VERSION;
     m_posInfo->m_id = LOGREC_INVALID_ID;
     m_posInfo->m_timestamp = timestamp;
@@ -202,12 +201,11 @@ struct LogRecInfo {
   {
     if (creating) {
       m_posInfo = new PosOfLogMsg_vc;
-      memset(m_posInfo, 0, sizeof(PosOfLogMsg_vc));
+      memset(m_posInfo, -1, sizeof(PosOfLogMsg_vc));
       m_lrDataArea = new MsgVarArea();
       m_endInfo = new EndOfLogMsg;
       memset(m_endInfo, 0, sizeof(EndOfLogMsg));
       m_lrDataArea->appendArray((uint8_t*)m_posInfo, sizeof(PosOfLogMsg_vc));
-      memset(m_posInfo, -1, sizeof(PosOfLogMsg_vc));
       m_posInfo->m_lrVersion = LOGREC_VERSION;
       m_posInfo->m_firstInLogevent = false;
       m_posInfo->m_id = LOGREC_INVALID_ID;
