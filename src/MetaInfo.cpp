@@ -481,7 +481,9 @@ struct TableMetaInfo : public MetaInfo {
       m_tblMetaHeader = (TableMetaHeader*)m_header;
       size_t colCount = m_tblMetaHeader->m_colCount;
       size_t dataSize = m_tblMetaHeader->m_colsSize;
-      if (m_data.getRealSize() + dataSize > size)
+      const size_t maxColCount = 5120;
+      if (m_data.getRealSize() + dataSize > size ||
+          colCount > maxColCount)
         return -11;
 
       // parse col meta
