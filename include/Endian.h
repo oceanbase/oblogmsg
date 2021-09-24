@@ -100,7 +100,7 @@ static inline void toLeEndian(void* buf, int size)
 {
 #if ENDIANNESS_LE
   return;
-#endif
+#else // ENDIANNESS_LE
   switch (size) {
     case 1:
       *((uint8_t*)buf) = swap8(*(uint8_t*)buf);
@@ -115,6 +115,7 @@ static inline void toLeEndian(void* buf, int size)
       *((uint64_t*)buf) = swap64(*(uint64_t*)buf);
       break;
   }
+#endif // ENDIANNESS_LE
 }
 
 template <class T>
@@ -122,9 +123,10 @@ static inline T toLeEndianByType(T value)
 {
 #if ENDIANNESS_LE
   return value;
-#endif
+#else // ENDIANNESS_LE
   toLeEndian(&value, sizeof(T));
   return value;
+#endif // ENDIANNESS_LE
 }
 
 }  // namespace logmessage
