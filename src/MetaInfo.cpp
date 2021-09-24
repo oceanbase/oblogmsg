@@ -61,8 +61,8 @@ public:
   {
     if (creating) {
       m_header = new uint8_t[headerSize];
-      m_data.appendArray(m_header, headerSize);
       memset(m_header, -1, headerSize);
+      m_data.appendArray(m_header, headerSize);
     }
   }
 
