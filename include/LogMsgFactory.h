@@ -8,8 +8,8 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#ifndef __LOG_MSG_FACTORY__
-#define __LOG_MSG_FACTORY__
+#pragma once
+
 #include <string>
 
 namespace oceanbase {
@@ -191,4 +191,3 @@ public:
 }  // namespace logmessage
 }  // namespace oceanbase
 
-#endif

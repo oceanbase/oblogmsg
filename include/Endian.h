@@ -8,8 +8,7 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#ifndef ENDIANNESS_H
-#define ENDIANNESS_H
+#pragma once
 
 namespace oceanbase {
 namespace logmessage {
@@ -141,5 +140,3 @@ static inline T toLeEndianByType(T value)
 
 }  // namespace logmessage
 }  // namespace oceanbase
-
-#endif

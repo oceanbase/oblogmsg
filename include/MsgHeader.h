@@ -8,8 +8,7 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#ifndef _MSG_HEADER_H_
-#define _MSG_HEADER_H_
+#pragma once
 
 #include <cstdint>
 
@@ -26,5 +25,3 @@ struct MsgHeader {
 
 }  // namespace logmessage
 }  // namespace oceanbase
-
-#endif

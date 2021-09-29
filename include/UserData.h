@@ -8,8 +8,7 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#ifndef __USER_DATA_H__
-#define __USER_DATA_H__
+#pragma once
 
 namespace oceanbase {
 namespace logmessage {
@@ -25,4 +24,3 @@ public:
 }  // namespace logmessage
 }  // namespace oceanbase
 
-#endif

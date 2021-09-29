@@ -8,8 +8,8 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#ifndef _LOGMSGBUF_H_
-#define _LOGMSGBUF_H_
+#pragma once
+
 #include <vector>
 #include <string>
 
@@ -40,5 +40,3 @@ size_t LogMsgAppendDataArray(uint8_t* sa, size_t size);
 
 }  // namespace logmessage
 }  // namespace oceanbase
-
-#endif /* _LOGMSGBUF_H_ */

@@ -8,8 +8,8 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#ifndef BINLOG_BUF_H_
-#define BINLOG_BUF_H_
+#pragma once
+
 #define LOG_EVENT_INIT_LEN (1024 * 32)
 #include <cstdlib>
 #include <cstring>
@@ -120,5 +120,3 @@ static inline bool binlogBuf_NULL(BinLogBuf* buf)
 
 }  // namespace logmessage
 }  // namespace oceanbase
-
-#endif /* BINLOG_BUF_H_ */

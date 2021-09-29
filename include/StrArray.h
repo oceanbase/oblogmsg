@@ -8,8 +8,7 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#ifndef _STR_ARRAY_H_
-#define _STR_ARRAY_H_
+#pragma once
 
 #include <sys/types.h>
 
@@ -30,4 +29,3 @@ public:
 }  // namespace logmessage
 }  // namespace oceanbase
 
-#endif
