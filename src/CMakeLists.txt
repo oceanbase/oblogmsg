@@ -1,3 +1,7 @@
+INCLUDE_DIRECTORIES(
+        ../include
+)
+
 set(SRC_LIST
     MsgType.cpp
     LogMsgBuf.cpp

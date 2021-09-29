@@ -1,13 +1,18 @@
 cmake_minimum_required(VERSION 3.14)
 project(oblogmsg)
+
 option(TEST "build tests" OFF)
 option(BENCHMARK "build benchmarks" OFF)
+option(USE_CXX11_ABI "Build with C++11 ABI" OFF)
 
-add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+endif ()
+
+if (NOT USE_CXX11_ABI)
+    add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:_GLIBCXX_USE_CXX11_ABI=0>)
 endif ()
 
 add_library(oblogmsg_base INTERFACE)
