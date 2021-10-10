@@ -6,6 +6,7 @@ option(BENCHMARK "build benchmarks" OFF)
 option(USE_CXX11_ABI "Build with C++11 ABI" OFF)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_INSTALL_PREFIX /home/ds)
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "RelWithDebInfo")
@@ -46,3 +47,23 @@ install(TARGETS oblogmsg oblogmsg_static
 install(
         DIRECTORY include/ DESTINATION include/logmessage
 )
+
+set(CPACK_GENERATOR "RPM")
+set(CPACK_PACKAGE_NAME "oblogmsg")
+set(CPACK_COMPONENTS_IGNORE_GROUPS 1)
+set(CPACK_RPM_COMPONENT_INSTALL ON)
+set(CPACK_RPM_RELOCATION_PATHS /usr /home/ds)
+set(CPACK_PACKAGING_INSTALL_PREFIX /home/ds)
+set(CPACK_PACKAGE_VERSION 3.2)
+set(CPACK_RPM_PACKAGE_GROUP "Applications/Databases")
+set(CPACK_RPM_PACKAGE_LICENSE "Mulan PubL v2.")
+set(CPACK_RPM_DEFAULT_USER "admin")
+set(CPACK_RPM_DEFAULT_GROUP "admin")
+set(CPACK_RPM_SPEC_MORE_DEFINE
+  "%global _missing_build_ids_terminate_build 0
+%global _find_debuginfo_opts -g
+%define __debug_install_post %{_rpmconfigdir}/find-debuginfo.sh %{?_find_debuginfo_opts} %{_builddir}/%{?buildsubdir};%{nil}
+%define debug_package %{nil}")
+include(CPack)
+
+add_custom_target(rpm COMMAND +make package)
