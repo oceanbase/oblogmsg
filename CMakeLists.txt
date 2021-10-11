@@ -1,69 +1,74 @@
-cmake_minimum_required(VERSION 3.14)
-project(oblogmsg)
+cmake_minimum_required(VERSION 3.20.0)
+project(oblogmsg VERSION 3.2.1)
 
-option(TEST "build tests" OFF)
-option(BENCHMARK "build benchmarks" OFF)
-option(USE_CXX11_ABI "Build with C++11 ABI" OFF)
+include(GNUInstallDirs)
 
-set(CMAKE_VERBOSE_MAKEFILE OFF)
-set(CMAKE_INSTALL_PREFIX /home/ds)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ..." FORCE)
+endif()
 
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "RelWithDebInfo")
-endif ()
-
-if (NOT USE_CXX11_ABI)
-    add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:_GLIBCXX_USE_CXX11_ABI=0>)
-endif ()
-
-add_library(oblogmsg_base INTERFACE)
-set(INNER_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set_property(GLOBAL PROPERTY OBLOGMSG_INCLUDE_DIRS ${INNER_INCLUDE_DIRS})
-target_include_directories(oblogmsg_base INTERFACE ${INNER_INCLUDE_DIRS})
-target_compile_features(oblogmsg_base INTERFACE cxx_std_11)
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:_GLIBCXX_USE_CXX11_ABI=0>)
 
 add_subdirectory(src)
 
-if (TEST)
-    execute_process(
-            COMMAND git submodule init
-            COMMAND git submodule update
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    )
-    add_subdirectory(third_party/googletest)
-    add_subdirectory(unittest)
-    enable_testing()
-endif ()
+# Check if oblogmsg is being used directly or via add_subdirectory
+set(OBLOGMSG_MASTER_PROJECT OFF)
+if(PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  set(OBLOGMSG_MASTER_PROJECT ON)
+endif()
 
-if (BENCHMARK)
-    add_subdirectory(benchmark)
-endif ()
+if(OBLOGMSG_MASTER_PROJECT)
+  message(STATUS "git submodule update --init third_party/googletest")
+  execute_process(COMMAND git submodule update --init third_party/googletest
+                  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                  COMMAND_ERROR_IS_FATAL ANY)
+  set(BUILD_GMOCK OFF CACHE INTERNAL "Builds the googlemock subproject")
+  set(INSTALL_GTEST OFF CACHE INTERNAL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
+  add_subdirectory(third_party/googletest)
+  add_subdirectory(unittest)
 
-install(TARGETS oblogmsg oblogmsg_static
-        LIBRARY DESTINATION lib64
-        ARCHIVE DESTINATION lib64
-)
+  add_subdirectory(benchmark)
+endif()
 
-install(
-        DIRECTORY include/ DESTINATION include/logmessage
-)
+# If oblogmsg is used via add_subdirectory, by default we don't install it.
+option(INSTALL_OBLOGMSG "Whether or not install oblogmsg" ${OBLOGMSG_MASTER_PROJECT})
 
-set(CPACK_GENERATOR "RPM")
-set(CPACK_PACKAGE_NAME "oblogmsg")
-set(CPACK_COMPONENTS_IGNORE_GROUPS 1)
-set(CPACK_RPM_COMPONENT_INSTALL ON)
-set(CPACK_RPM_RELOCATION_PATHS /usr /home/ds)
-set(CPACK_PACKAGING_INSTALL_PREFIX /home/ds)
-set(CPACK_PACKAGE_VERSION 3.2)
-set(CPACK_RPM_PACKAGE_GROUP "Applications/Databases")
-set(CPACK_RPM_PACKAGE_LICENSE "Mulan PubL v2.")
-set(CPACK_RPM_DEFAULT_USER "admin")
-set(CPACK_RPM_DEFAULT_GROUP "admin")
-set(CPACK_RPM_SPEC_MORE_DEFINE
-  "%global _missing_build_ids_terminate_build 0
+if(INSTALL_OBLOGMSG)
+  ################# INSTALL ##########################################################################
+  install(DIRECTORY include/
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+  )
+
+  install(TARGETS oblogmsg_shared oblogmsg_static
+          EXPORT oblogmsg
+          LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+  )
+
+  install(EXPORT oblogmsg
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/oblogmsg
+          FILE oblogmsgConfig.cmake
+          NAMESPACE oceanbase::
+  )
+
+  ################# PACKAGE ##########################################################################
+  set(CPACK_GENERATOR "RPM")
+  set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
+  set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+  set(CPACK_COMPONENTS_IGNORE_GROUPS 1)
+  set(CPACK_RPM_COMPONENT_INSTALL ON)
+  set(CPACK_RPM_RELOCATION_PATHS /usr /home/admin/oceanbase)
+  set(CPACK_PACKAGING_INSTALL_PREFIX /home/admin/oceanbase)
+  set(CPACK_RPM_PACKAGE_GROUP "Applications/Databases")
+  set(CPACK_RPM_PACKAGE_LICENSE "Mulan PubL v2.")
+  set(CPACK_RPM_DEFAULT_USER "admin")
+  set(CPACK_RPM_DEFAULT_GROUP "admin")
+  set(CPACK_RPM_SPEC_MORE_DEFINE
+      "%global _missing_build_ids_terminate_build 0
 %global _find_debuginfo_opts -g
 %define __debug_install_post %{_rpmconfigdir}/find-debuginfo.sh %{?_find_debuginfo_opts} %{_builddir}/%{?buildsubdir};%{nil}
 %define debug_package %{nil}")
-include(CPack)
 
-add_custom_target(rpm COMMAND +make package)
+  include(CPack)
+endif()
