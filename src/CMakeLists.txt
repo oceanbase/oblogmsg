@@ -1,17 +1,27 @@
-INCLUDE_DIRECTORIES(
-        ../include
+set(SRC_LIST LogMsgBuf.cpp
+             LogMsgFactory.cpp
+             LogRecord.cpp
+             MetaInfo.cpp
+             MsgType.cpp
+             MsgVarArea.cpp
 )
 
-set(SRC_LIST
-    MsgType.cpp
-    LogMsgBuf.cpp
-    MsgVarArea.cpp 
-    LogRecord.cpp
-    MetaInfo.cpp 
-    LogMsgFactory.cpp
-)
-add_library(oblogmsg SHARED ${SRC_LIST})
+add_library(oblogmsg_shared SHARED ${SRC_LIST})
 add_library(oblogmsg_static STATIC ${SRC_LIST})
-target_link_libraries(oblogmsg PUBLIC oblogmsg_base)
-target_link_libraries(oblogmsg_static PUBLIC oblogmsg_base)
-set_target_properties(oblogmsg_static PROPERTIES OUTPUT_NAME "oblogmsg")
+
+foreach(T IN ITEMS oblogmsg_shared oblogmsg_static)
+  target_compile_features(${T} PUBLIC cxx_std_11)
+  set_target_properties(${T} PROPERTIES OUTPUT_NAME oblogmsg
+                                        CXX_STANDARD 11
+                                        CXX_EXTENSIONS OFF
+                                        POSITION_INDEPENDENT_CODE ON)
+  target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+                                  PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
+endforeach()
+
+# ensure that the build results can be run on systems with lower libstdc++ version than the build system
+target_link_libraries(oblogmsg_shared PRIVATE -static-libstdc++)
+
+# with namespace oceanbase
+add_library(oceanbase::oblogmsg_shared ALIAS oblogmsg_shared)
+add_library(oceanbase::oblogmsg_static ALIAS oblogmsg_static)
