@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.20.0)
 project(oblogmsg VERSION 3.2.1)
 
-include(GNUInstallDirs)
-
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ..." FORCE)
 endif()
@@ -35,6 +33,8 @@ option(INSTALL_OBLOGMSG "Whether or not install oblogmsg" ${OBLOGMSG_MASTER_PROJ
 
 if(INSTALL_OBLOGMSG)
   ################# INSTALL ##########################################################################
+  include(GNUInstallDirs)
+
   install(DIRECTORY include/
           DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
   )
@@ -48,8 +48,18 @@ if(INSTALL_OBLOGMSG)
 
   install(EXPORT oblogmsg
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/oblogmsg
-          FILE oblogmsgConfig.cmake
+          FILE oblogmsg.cmake
           NAMESPACE oceanbase::
+  )
+
+  ## install oblogmsgConfig.cmake and oblogmsgConfigVersion.cmake
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/oblogmsgConfig.cmake "include(\${CMAKE_CURRENT_LIST_DIR}/oblogmsg.cmake)\n")
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/oblogmsgConfigVersion.cmake
+                                   COMPATIBILITY SameMajorVersion
+  )
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/oblogmsgConfig.cmake ${CMAKE_CURRENT_BINARY_DIR}/oblogmsgConfigVersion.cmake
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/oblogmsg
   )
 
   ################# PACKAGE ##########################################################################
