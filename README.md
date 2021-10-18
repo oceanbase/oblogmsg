@@ -1,13 +1,43 @@
-# LogMessage
-  LogMessage是一种数据库增量数据的输出格式,oceanbase的增量采集模块liboblog正是使用的这种消息格式来输出增量数据,LogMessage支持oceanbase中不同数据类型的增量数据的写入，具有序列化和反序列化的能力。
-# 如何编译
-  * LogMessage的编译依赖
-      1. g++(推荐版本g++-5.2.0)
-      2. cmake(推荐版本3.20)
-  * 执行cmake . && make,编译完成后，src目录下的liboblogmsg.so和liboblogmsg.a即为编译产物,使用时需要包含头文件目录include
+# oblogmsg
+  oblogmsg是一种数据库增量数据的输出格式,oceanbase的增量采集模块liboblog正是使用的这种消息格式来输出增量数据,oblogmsg支持oceanbase中不同数据类型的增量数据的写入，具有序列化和反序列化的能力。
+## 如何使用 oblogmsg
 
-# LogMessage部分接口说明
-  * 创建一个record
+> 前置条件
+>
+> * cmake: >=3.20.0
+> * g++: 支持 C++11 标准
+
+
+
+### 以源码方式依赖（推荐方式）
+
+* 可以使用 `git submodule` 的方式将 oblogmsg 作为主项目的子模块
+* 在主项目的  CMakeLists.txt 文件中使用 `add_subdirectory(submodule_path_to_oblogmsg)` 来依赖 oblogmsg，该命令执行后将提供 `oceanbase::oblogmsg_shared` 和 `oceanbase::oblogmsg_static` 两个 targets
+* 在主项目相关  CMakeLists.txt 文件中，对于要依赖 oblogmsg 的 target t1，使用 `target_link_libraries(t1 PRIVATE oceanbase::oblogmsg_shared)`或者 `target_link_libraries(t1 PRIVATE oceanbase::oblogmsg_static)`即可
+
+### 依赖编译后的 oblogmsg 库
+
+* 编译、安装 oblogmsg
+
+```shell
+# 编译 oblogmsg
+git clone https://github.com/oceanbase/oblogmsg.git
+mkdir oblogmsg-build
+cd oblogmsg-build
+cmake -S ../oblogmsg -B .
+cmake --build .
+
+# 本地安装
+cmake --install . --prefix=${OBLOGMSG_INSTALL_PATH}
+```
+
+* 主项目中依赖编译、安装后的 oblogmsg
+  * 在主项目  CMakeLists.txt 文件中使用 `set(CMAKE_PREFIX_PATH $ENV{OBLOGMSG_INSTALL_PATH} ${CMAKE_PREFIX_PATH})` 设置 oblogmsg 库搜索路径
+  * 然后使用 `find_package(oblogmsg REQUIRED)`使加载 oblogmsg，该命令执行成功后将提供 `oceanbase::oblogmsg_shared` 和 `oceanbase::oblogmsg_static` 两个 targets
+  * 在主项目相关  CMakeLists.txt 文件中，对于要依赖 oblogmsg 的 target t1，使用 `target_link_libraries(t1 PRIVATE oceanbase::oblogmsg_shared)`或者 `target_link_libraries(t1 PRIVATE oceanbase::oblogmsg_static)`即可
+
+## oblogmsg部分接口说明
+### 创建一个record
 
      1. void ILogRecord::setSrcType(int type)
         功能描述:
@@ -210,7 +240,7 @@
             true 此record已经完成序列化，或者此record是由一段数据反序列化后创建的
             false 此record还未进行序列化
 
-  * 反序列化一个record,或者从一个已经序列化过的record中(ILogRecord::parsedOK()返回true)解析数据
+### 反序列化一个record,或者从一个已经序列化过的record中(ILogRecord::parsedOK()返回true)解析数据
 
      1. int ILogRecord::parse(const void* ptr, size_t size)
         功能描述:
@@ -384,13 +414,13 @@
         返回值：
             返回一个StrArray类型的指针，该指针指向存着后镜像的值，可通过StrArray->size()接口获取数据的列数，StrArray->elementAt(int i, const char*& s, size_t& length)接口获取每列的数据
 
-  * 从一个未序列化过的record中(ILogRecord::parsedOK()返回false)解析前后镜像字段的数据
+### 从一个未序列化过的record中(ILogRecord::parsedOK()返回false)解析前后镜像字段的数据
 
      1. int ILogRecord::getTableMeta(ITableMeta*& tblMeta)
         功能描述:
             从一个record获取表的元数据信息,从一个未序列化过的record取值时，tblMeta必须为一个空指针
         参数:
-            tblMeta 需为一个空指针，该接口会将此指针指向record的元数据地址，内存由logmessage管理，调用方不需要释放
+            tblMeta 需为一个空指针，该接口会将此指针指向record的元数据地址，内存由oblogmsg管理，调用方不需要释放
         返回值:
             0 成功
             其他值 失败
