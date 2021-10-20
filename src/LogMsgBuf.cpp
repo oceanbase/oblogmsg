@@ -8,13 +8,12 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#include <cstdint>
 #include <cstring>
 #include "MsgType.h"
 #include "LogMsgBuf.h"
 #include "BinLogBuf.h"
 #include "MsgHeader.h"
-#include "Endian.h"
+#include "MsgEndian.h"
 
 namespace oceanbase {
 namespace logmessage {
