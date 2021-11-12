@@ -4,6 +4,7 @@ set(SRC_LIST LogMsgBuf.cpp
              MetaInfo.cpp
              MsgType.cpp
              MsgVarArea.cpp
+             Crc32.cpp
 )
 
 add_library(oblogmsg_shared SHARED ${SRC_LIST})
@@ -11,6 +12,7 @@ add_library(oblogmsg_static STATIC ${SRC_LIST})
 
 foreach(T IN ITEMS oblogmsg_shared oblogmsg_static)
   target_compile_features(${T} PUBLIC cxx_std_11)
+  target_compile_options(${T} PRIVATE -Wno-invalid-offsetof)
   set_target_properties(${T} PROPERTIES OUTPUT_NAME oblogmsg
                                         CXX_STANDARD 11
                                         CXX_EXTENSIONS OFF

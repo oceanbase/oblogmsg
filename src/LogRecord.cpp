@@ -20,6 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include <cinttypes>
 #include <iostream>
 #include "LogMsgBuf.h"
+#include "Crc32.h"
 
 namespace oceanbase {
 namespace logmessage {
@@ -32,6 +33,8 @@ const uint16_t LOGREC_VERSION = 3;                       // version num
 const uint64_t LOGREC_SUB_VERSION = 0x0200000000000000;  // sub version num
 #define GET_LOGREC_SUB_VERSION(v) ((v)&0xFF00000000000000)
 const uint64_t LOGREC_INVALID_ID = 0;
+bool LOGREC_CRC = false;
+bool LOGREC_PARSE_CRC = false;
 
 // LogRecord head info
 struct PosOfLogMsg_vb {
@@ -511,6 +514,10 @@ struct LogRecInfo {
 
     exchangeEndInfoToLe(m_endInfo, count);
     exchangePosInfoToLe((const char*)m_posInfo, count);
+    if (m_tailParseOK && LOGREC_PARSE_CRC && count >= sizeof(struct EndOfLogMsg_v2) && m_endInfo->m_crc != 0) {
+      if (m_endInfo->m_crc != crc32_fast((char*)ptr, (const char*)v - (const char*)ptr + offsetof(EndOfLogMsg, m_crc)))
+        return -5;
+    }
     m_parsedOK = true;
     return 0;
   }
@@ -1385,7 +1392,10 @@ struct LogRecInfo {
       /*force set header length to PosOfLogMsg_v3，because client will check it*/
       *((uint32_t*)v - 1) = toLeEndianByType((uint32_t)sizeof(PosOfLogMsg_v3));
       delete[] posInfoToLe;
-
+      if (LOGREC_CRC) {
+        EndOfLogMsg* tail = (EndOfLogMsg*)(m.c_str() + m.size() - sizeof(EndOfLogMsg));
+        tail->m_crc = toLeEndianByType((uint32_t)crc32_fast(m.c_str(), (char*)tail - m.c_str() + offsetof(EndOfLogMsg, m_crc)));
+      }
       m_parsedOK = true;  // to support fetching
       *size = m.size();
       return m.c_str();
@@ -1426,7 +1436,10 @@ struct LogRecInfo {
       delete[] posInfoToLe;
 
       const char* msg = LogMsgGetString(size);
-
+      if (LOGREC_CRC) {
+        EndOfLogMsg* tail = (EndOfLogMsg*)LogMsgGetValueByOffset(((PosOfLogMsg_vc*)m_posInfo)->m_posOfEndInfo);
+        tail->m_crc = toLeEndianByType((uint32_t)crc32_fast(msg, (char*)tail - msg + offsetof(EndOfLogMsg, m_crc)));
+      }
       /* Serialize the header */
       if (reserveMemory) {
         m_reservedMemory = true;

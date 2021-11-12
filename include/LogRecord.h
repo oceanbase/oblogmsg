@@ -21,7 +21,8 @@ namespace logmessage {
 
 class StrArray;
 struct LogRecInfo;
-
+extern bool LOGREC_CRC;
+extern bool LOGREC_PARSE_CRC;
 #define BR_FAKE_DDL_COLNAME "ddl"
 typedef enum RecordType {
   EINSERT = 0,
