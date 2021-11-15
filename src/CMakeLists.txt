@@ -13,6 +13,7 @@ add_library(oblogmsg_static STATIC ${SRC_LIST})
 foreach(T IN ITEMS oblogmsg_shared oblogmsg_static)
   target_compile_features(${T} PUBLIC cxx_std_11)
   target_compile_options(${T} PRIVATE -Wno-invalid-offsetof)
+
   set_target_properties(${T} PROPERTIES OUTPUT_NAME oblogmsg
                                         CXX_STANDARD 11
                                         CXX_EXTENSIONS OFF
@@ -20,7 +21,7 @@ foreach(T IN ITEMS oblogmsg_shared oblogmsg_static)
   target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                   PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
 endforeach()
-
+target_compile_definitions(oblogmsg_static PRIVATE $<$<BOOL:${HIDDEN_DMB_SYMBOLS}>:_HIDDEN_DMB_SYMBOLS>)
 # ensure that the build results can be run on systems with lower libstdc++ version than the build system
 target_link_libraries(oblogmsg_shared PRIVATE -static-libstdc++)
 

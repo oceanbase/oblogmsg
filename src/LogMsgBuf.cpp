@@ -19,6 +19,13 @@ See the Mulan PSL v2 for more details. */
 namespace oceanbase {
 namespace logmessage {
 
+
+#ifdef _HIDDEN_DMB_SYMBOLS
+  #define VISIBILITY_HIDDEN __attribute__((visibility("hidden")))
+#else
+  #define VISIBILITY_HIDDEN
+#endif
+
 typedef struct _LogMsgBuf {
   char* buf;
   size_t bufSize;
@@ -47,7 +54,7 @@ static inline void lm_check_buf(LogMsgBuf* lmbuf, size_t size, char*& pos, STRLE
   }
 }
 
-int LogMsgLocalInit()
+VISIBILITY_HIDDEN int LogMsgLocalInit()
 {
   LogMsgLocalDestroy();
   if (NULL == (lmb = new LogMsgBuf))
@@ -62,7 +69,7 @@ int LogMsgLocalInit()
   return 0;
 }
 
-void LogMsgLocalDestroy()
+VISIBILITY_HIDDEN void LogMsgLocalDestroy()
 {
   if (lmb == &lmb_global)
     return;
@@ -77,7 +84,7 @@ void LogMsgLocalDestroy()
   }
 }
 
-int LogMsgInit()
+VISIBILITY_HIDDEN int LogMsgInit()
 {
   if (lmb != &lmb_global) {
     LogMsgLocalDestroy();
@@ -91,7 +98,7 @@ int LogMsgInit()
   return 0;
 }
 
-void LogMsgDestroy()
+VISIBILITY_HIDDEN void LogMsgDestroy()
 {
   if (lmb != &lmb_global)
     return;
@@ -102,12 +109,12 @@ void LogMsgDestroy()
   lmb->buf = lmb->defaultBuf = NULL;
 }
 
-const char* LogMsgGetValueByOffset(size_t offset)
+VISIBILITY_HIDDEN const char* LogMsgGetValueByOffset(size_t offset)
 {
   return lmb->buf + offset + LogMsgHeadSize + sizeof(DT_TYPE) + sizeof(COUNT_TYPE);
 }
 
-size_t LogMsgAppendString(const char* string, size_t size)
+VISIBILITY_HIDDEN size_t LogMsgAppendString(const char* string, size_t size)
 {
   size_t offset = lmb->bufPos - LogMsgHeadSize;
   *(DT_TYPE*)(lmb->buf + lmb->bufPos) = (DT_TYPE)(DT_STRING);
@@ -122,7 +129,7 @@ size_t LogMsgAppendString(const char* string, size_t size)
   lmb->buf[lmb->bufPos - 1] = 0;
   return offset;
 }
-size_t LogMsgAppendString(const std::string& string)
+VISIBILITY_HIDDEN size_t LogMsgAppendString(const std::string& string)
 {
   size_t offset = lmb->bufPos - LogMsgHeadSize, size = string.size();
   *(DT_TYPE*)(lmb->buf + lmb->bufPos) = (DT_TYPE)(DT_STRING);
@@ -136,14 +143,14 @@ size_t LogMsgAppendString(const std::string& string)
   lmb->bufPos += (sizeof(DT_TYPE) + sizeof(STRLEN_TYPE) + size + 1);
   return offset;
 }
-size_t LogMsgAppendBuf(const char* data, size_t size)
+VISIBILITY_HIDDEN size_t LogMsgAppendBuf(const char* data, size_t size)
 {
   size_t offset = lmb->bufPos - LogMsgHeadSize;
   memcpy(lmb->buf + lmb->bufPos, data, size);
   lmb->bufPos += size;
   return offset;
 }
-size_t LogMsgAppendBuf(const std::string& string)
+VISIBILITY_HIDDEN size_t LogMsgAppendBuf(const std::string& string)
 {
   size_t offset = lmb->bufPos - LogMsgHeadSize;
   memcpy(lmb->buf + lmb->bufPos, string.c_str(), string.size());
@@ -151,7 +158,7 @@ size_t LogMsgAppendBuf(const std::string& string)
   return offset;
 }
 
-size_t LogMsgAppendBuf(const BinLogBuf* sa, size_t size)
+VISIBILITY_HIDDEN size_t LogMsgAppendBuf(const BinLogBuf* sa, size_t size)
 {
   size_t offset = lmb->bufPos - LogMsgHeadSize;
   *(DT_TYPE*)(lmb->buf + lmb->bufPos) = (DT_TYPE)(DT_STRING | DC_ARRAY);
@@ -185,7 +192,7 @@ size_t LogMsgAppendBuf(const BinLogBuf* sa, size_t size)
   lmb->bufPos = pos - lmb->buf;
   return offset;
 }
-size_t LogMsgAppendStringArray(std::vector<std::string*>& sa)
+VISIBILITY_HIDDEN size_t LogMsgAppendStringArray(std::vector<std::string*>& sa)
 {
   size_t offset = lmb->bufPos - LogMsgHeadSize, size = sa.size();
   *(DT_TYPE*)(lmb->buf + lmb->bufPos) = (DT_TYPE)(DT_STRING | DC_ARRAY);
@@ -219,7 +226,7 @@ size_t LogMsgAppendStringArray(std::vector<std::string*>& sa)
   lmb->bufPos = pos - lmb->buf;
   return offset;
 }
-size_t LogMsgAppendStringArray(const char** sa, size_t size)
+VISIBILITY_HIDDEN size_t LogMsgAppendStringArray(const char** sa, size_t size)
 {
   size_t offset = lmb->bufPos - LogMsgHeadSize;
   *(DT_TYPE*)(lmb->buf + lmb->bufPos) = (DT_TYPE)(DT_STRING | DC_ARRAY);
@@ -252,7 +259,7 @@ size_t LogMsgAppendStringArray(const char** sa, size_t size)
   lmb->bufPos = pos - lmb->buf;
   return offset;
 }
-size_t LogMsgAppendDataArray(std::vector<long>& sa)
+VISIBILITY_HIDDEN size_t LogMsgAppendDataArray(std::vector<long>& sa)
 {
   size_t offset = lmb->bufPos - LogMsgHeadSize;
   *(DT_TYPE*)(lmb->buf + lmb->bufPos) = (DT_TYPE)(DT_INT64 | DC_ARRAY);
@@ -276,7 +283,7 @@ size_t LogMsgAppendDataArray(std::vector<long>& sa)
   return offset;
 }
 
-size_t LogMsgAppendDataArray(uint8_t* sa, size_t size)
+VISIBILITY_HIDDEN size_t LogMsgAppendDataArray(uint8_t* sa, size_t size)
 {
   size_t offset = lmb->bufPos - LogMsgHeadSize;
   *(DT_TYPE*)(lmb->buf + lmb->bufPos) = (DT_TYPE)(DT_UINT8 | DC_ARRAY);
@@ -292,7 +299,7 @@ size_t LogMsgAppendDataArray(uint8_t* sa, size_t size)
   lmb->bufPos += size;
   return offset;
 }
-void LogMsgSetHead(size_t size)
+VISIBILITY_HIDDEN void LogMsgSetHead(size_t size)
 {
   lmb->bufPos = size + LogMsgHeadSize + sizeof(DT_TYPE) + sizeof(COUNT_TYPE);
   if (lmb->buf != lmb->defaultBuf) {
@@ -308,7 +315,7 @@ void LogMsgSetHead(size_t size)
     }
   }
 }
-void LogMsgCopyHead(const char* head, size_t size)
+VISIBILITY_HIDDEN void LogMsgCopyHead(const char* head, size_t size)
 {
   ((struct MsgHeader*)lmb->buf)->m_msgType = MT_VAR;
   toLeEndian(&(((struct MsgHeader*)lmb->buf)->m_msgType), sizeof(uint16_t));
@@ -326,13 +333,13 @@ void LogMsgCopyHead(const char* head, size_t size)
   memcpy(lmb->buf + LogMsgHeadSize + sizeof(DT_TYPE) + sizeof(COUNT_TYPE), head, size);
 }
 
-void LogMsgFroceSetHeadSize(size_t size)
+VISIBILITY_HIDDEN void LogMsgFroceSetHeadSize(size_t size)
 {
   *(COUNT_TYPE*)(lmb->buf + LogMsgHeadSize + sizeof(DT_TYPE)) = size;
   toLeEndian(lmb->buf + LogMsgHeadSize + sizeof(DT_TYPE), sizeof(COUNT_TYPE));
 }
 
-const char* LogMsgGetString(size_t* size)
+VISIBILITY_HIDDEN const char* LogMsgGetString(size_t* size)
 {
   *size = lmb->bufPos;
   if (lmb->buf != lmb->defaultBuf && lmb->bufPos > DefaultLogMsgBufSize)
