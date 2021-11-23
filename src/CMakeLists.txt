@@ -21,7 +21,6 @@ foreach(T IN ITEMS oblogmsg_shared oblogmsg_static)
   target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                   PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
 endforeach()
-target_compile_definitions(oblogmsg_static PRIVATE $<$<BOOL:${HIDDEN_DMB_SYMBOLS}>:_HIDDEN_DMB_SYMBOLS>)
 # ensure that the build results can be run on systems with lower libstdc++ version than the build system
 target_link_libraries(oblogmsg_shared PRIVATE -static-libstdc++)
 
