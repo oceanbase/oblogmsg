@@ -110,14 +110,14 @@ typedef struct _TestThreadInfo {
 
 void* create(void* argv)
 {
-  LogMsgLocalInit();
+  LogMsgBuf* lmb = new LogMsgBuf();
   TestThreadInfo* info = (TestThreadInfo*)argv;
   long matched = 0;
   long mismatched = 0;
   while (*(info->quit) == false) {
     ILogRecord* sample = createLogRecord();
     size_t pre_toString_size;
-    sample->toString(&pre_toString_size, true);
+    sample->toString(&pre_toString_size, lmb,true);
 
     size_t sample_msg_size;
     const char* sample_msg_content = sample->getFormatedString(&sample_msg_size);
@@ -137,7 +137,7 @@ void* create(void* argv)
     LogMsgFactory::destroy(sample);
   }
   std::cout << "matched " << matched << ", mismatched " << mismatched << std::endl;
-  LogMsgLocalDestroy();
+  delete lmb;
   return NULL;
 }
 
@@ -147,10 +147,10 @@ TEST(LogRecordImpl, ConcurrencyToString)
 {
   bool quit = false;
   /* Create one sample for copmare */
-  LogMsgInit();
+  LogMsgBuf* lmb = new LogMsgBuf();
   ILogRecord* sample = createLogRecord();
   size_t sample_msg_size;
-  const char* sample_msg_content = sample->toString(&sample_msg_size);
+  const char* sample_msg_content = sample->toString(&sample_msg_size,lmb);
 
   /* ToString in multi-pthreads */
 
@@ -172,7 +172,7 @@ TEST(LogRecordImpl, ConcurrencyToString)
   for (int i = 0; i < Concurrency; i++)
     pthread_join(*(testThreads + i), NULL);
   delete[] testThreads;
-  LogMsgDestroy();
+  delete lmb;
 }
 /*
 TEST(LogRecordImpl, ParseAndGet) {

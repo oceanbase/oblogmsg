@@ -19,24 +19,35 @@ namespace oceanbase {
 namespace logmessage {
 
 struct BinLogBuf;
-int LogMsgInit();
-int LogMsgLocalInit();
-void LogMsgDestroy();
-void LogMsgLocalDestroy();
-const char* LogMsgGetValueByOffset(size_t offset);
-size_t LogMsgAppendString(const char* string, size_t size);
-size_t LogMsgAppendString(const std::string& string);
-size_t LogMsgAppendBuf(const char* data, size_t size);
-size_t LogMsgAppendBuf(const std::string& string);
-size_t LogMsgAppendBuf(const BinLogBuf* sa, size_t size);
-size_t LogMsgAppendStringArray(std::vector<std::string*>& sa);
-size_t LogMsgAppendStringArray(const char** sa, size_t size);
-void LogMsgSetHead(size_t size);
-void LogMsgCopyHead(const char* head, size_t size);
-void LogMsgFroceSetHeadSize(size_t size);
-const char* LogMsgGetString(size_t* size);
-size_t LogMsgAppendDataArray(std::vector<long>& sa);
-size_t LogMsgAppendDataArray(uint8_t* sa, size_t size);
+class LogMsgBuf {
+public:
+  LogMsgBuf();
+  ~LogMsgBuf();
+  const char* getValueByOffset(size_t offset);
+  size_t appendString(const char* string, size_t size);
+  size_t appendString(const std::string& string);
+  size_t appendBuf(const char* data, size_t size);
+  size_t appendBuf(const std::string& string);
+  size_t appendBuf(const BinLogBuf* sa, size_t size);
+  size_t appendStringArray(std::vector<std::string*>& sa);
+  size_t appendStringArray(const char** sa, size_t size);
+  void setHead(size_t size);
+  void copyHead(const char* head, size_t size);
+  void froceSetHeadSize(size_t size);
+  const char* getString(size_t* size);
+  size_t appendDataArray(std::vector<long>& sa);
+  size_t appendDataArray(uint8_t* sa, size_t size);
+
+private:
+  inline void checkBuf(size_t size, char*& pos, uint32_t*& s, char*& head);
+
+private:
+  char* buf;
+  size_t bufSize;
+  size_t bufPos;
+  char* defaultBuf;
+  size_t avg_size;
+};
 
 }  // namespace logmessage
 }  // namespace oceanbase

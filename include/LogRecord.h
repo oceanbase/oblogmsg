@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <cstdint>
 #include "UserData.h"
 #include "BinLogBuf.h"
+#include "LogMsgBuf.h"
 
 namespace oceanbase {
 namespace logmessage {
@@ -234,7 +235,7 @@ public:
    * serialize
    * @return serialized ptr
    */
-  virtual const char* toString(size_t* size, bool reserveMemory = false) = 0;
+  virtual const char* toString(size_t* size, LogMsgBuf* lmb = NULL, bool reserveMemory = false) = 0;
 
   /**
    * @return serialized ptr
@@ -272,7 +273,7 @@ class LogRecordImpl : public ILogRecord {
 public:
   LogRecordImpl(time_t timestamp, ITableMeta* tblMeta);
   LogRecordImpl(const void* ptr, size_t size);
-  LogRecordImpl(bool creating = true, bool useDMB = false);
+  LogRecordImpl(bool creating = true, bool useLMB = false);
   virtual ~LogRecordImpl();
 
 public:
@@ -403,7 +404,7 @@ public:
 
   virtual size_t getRealSize();
 
-  virtual const char* toString(size_t* size, bool reserveMemory = false);
+  virtual const char* toString(size_t* size, LogMsgBuf* lmb = NULL, bool reserveMemory = false);
 
   virtual const char* getFormatedString(size_t* size);
 

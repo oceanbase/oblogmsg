@@ -140,7 +140,7 @@ struct LogRecInfo {
   string m_instance;
   string m_encoding;
   string m_ob_trace_info;
-  bool useDMB;
+  bool   useLMB; 
   bool m_reservedMemory;
   LogRecInfo(time_t timestamp, ITableMeta* tblMeta)
       : m_creatingMode(true),
@@ -152,7 +152,7 @@ struct LogRecInfo {
         m_tblMeta(tblMeta),
         m_dbMeta(NULL),
         m_expiredMetaDataCollections(NULL),
-        useDMB(false),
+        useLMB(false),
         m_reservedMemory(false)
   {
     m_posInfo = new PosOfLogMsg_vc;
@@ -187,7 +187,7 @@ struct LogRecInfo {
         m_tblMeta(NULL),
         m_dbMeta(NULL),
         m_expiredMetaDataCollections(NULL),
-        useDMB(false),
+        useLMB(false),
         m_reservedMemory(false)
   {
     m_lrDataArea = new MsgVarArea(false);
@@ -201,7 +201,7 @@ struct LogRecInfo {
     m_filter_max_count = FILTER_SIZE;
   }
 
-  LogRecInfo(bool creating, bool useDMB = false)
+  LogRecInfo(bool creating, bool useLMB = false)
       : m_creatingMode(creating),
         m_parsedOK(false),
         m_tailParseOK(false),
@@ -224,9 +224,9 @@ struct LogRecInfo {
       m_posInfo->m_id = LOGREC_INVALID_ID;
       m_posInfo->m_srcType = SRC_MYSQL;
       m_posInfo->m_srcCategory = SRC_FULL_RECORDED;
-      this->useDMB = useDMB;
+      this->useLMB = useLMB;
     } else {
-      this->useDMB = false;
+      this->useLMB= false;
       m_lrDataArea = new MsgVarArea(false);
     }
     m_reservedMemory = false;
@@ -259,7 +259,7 @@ struct LogRecInfo {
   void clear()
   {
     if (m_creatingMode) {
-      if (!useDMB) {
+      if (!useLMB) {
         m_lrDataArea->clear();
         m_lrDataArea->appendArray((uint8_t*)m_posInfo, sizeof(PosOfLogMsg_vc));
       } else {
@@ -845,7 +845,7 @@ struct LogRecInfo {
 
   void setInstance(const char* instance)
   {
-    if (useDMB) {
+    if (useLMB) {
       SET_OR_CLEAR_STRING(m_instance, instance);
     } else
       ((PosOfLogMsg_vc*)m_posInfo)->m_posOfInstance = m_lrDataArea->appendString(instance);
@@ -853,7 +853,7 @@ struct LogRecInfo {
 
   const char* instance()
   {
-    if (useDMB)
+    if (useLMB)
       return m_instance.c_str();
     size_t offset = ((PosOfLogMsg_vc*)m_posInfo)->m_posOfInstance;
     return m_lrDataArea->getString(offset);
@@ -861,7 +861,7 @@ struct LogRecInfo {
 
   void setDbname(const char* dbname)
   {
-    if (useDMB) {
+    if (useLMB) {
       SET_OR_CLEAR_STRING(m_dbName, dbname);
     } else {
       // when m_creatingMode is false,before call function parse,m_posInfo maybe null
@@ -873,7 +873,7 @@ struct LogRecInfo {
 
   const char* dbname() const
   {
-    if (useDMB)
+    if (useLMB)
       return m_dbName.c_str();
     size_t offset = ((PosOfLogMsg_vc*)m_posInfo)->m_posOfDbName;
     return m_lrDataArea->getString(offset);
@@ -881,7 +881,7 @@ struct LogRecInfo {
 
   void setTbname(const char* tbname)
   {
-    if (useDMB) {
+    if (useLMB) {
       SET_OR_CLEAR_STRING(m_tbName, tbname);
     } else {
       if (m_posInfo != NULL) {
@@ -892,7 +892,7 @@ struct LogRecInfo {
 
   const char* tbname() const
   {
-    if (useDMB)
+    if (useLMB)
       return m_tbName.c_str();
     size_t offset = ((PosOfLogMsg_vc*)m_posInfo)->m_posOfTbName;
     return m_lrDataArea->getString(offset);
@@ -978,7 +978,7 @@ struct LogRecInfo {
 
   void setRecordEncoding(const char* encoding)
   {
-    if (useDMB)
+    if (useLMB)
       SET_OR_CLEAR_STRING(m_encoding, encoding);
     else
       ((PosOfLogMsg_vc*)m_posInfo)->m_encoding = m_lrDataArea->appendString(encoding);
@@ -1001,7 +1001,7 @@ struct LogRecInfo {
 
   void setObTraceInfo(const char* ob_trace_info)
   {
-    if (useDMB) {
+    if (useLMB) {
       SET_OR_CLEAR_STRING(m_ob_trace_info, ob_trace_info);
     } else {
       ((PosOfLogMsg_vc*)m_posInfo)->m_posOfObTraceInfo = m_lrDataArea->appendString(ob_trace_info);
@@ -1011,7 +1011,7 @@ struct LogRecInfo {
   const char* obTraceInfo()
   {
     if (m_creatingMode || m_parsedOK) {
-      if (useDMB) {
+      if (useLMB) {
         return m_ob_trace_info.c_str();
       } else {
         if (GET_LOGREC_SUB_VERSION(m_posInfo->m_id) >= LOGREC_SUB_VERSION) {
@@ -1251,16 +1251,17 @@ struct LogRecInfo {
    *
    * @return the pointer to the serialized string, NULL is returned if failed
    */
-  const char* toString(size_t* size, bool reserveMemory = false)
+  const char* toString(size_t* size, LogMsgBuf* lmb = NULL, bool reserveMemory = false)
   {
     if (!m_creatingMode) {
       return getSerializedString(size);
     }
+
     /* Always use the latest version to do the serialization */
     int colCount = 0;
     uint8_t op = m_posInfo->m_op;
-    if (useDMB)
-      LogMsgSetHead(sizeof(PosOfLogMsg_vc));
+    if (useLMB)
+      lmb->setHead(sizeof(PosOfLogMsg_vc));
     switch (op) {
       case EINSERT:
       case EDELETE:
@@ -1282,19 +1283,19 @@ struct LogRecInfo {
          */
         m_tblMeta->trySerializeMetaDataAsMsgArea(m_extra_infos);
 
-        if (useDMB) {
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColNames = LogMsgAppendBuf(m_tblMeta->getNameData());
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColEncoding = LogMsgAppendBuf(m_tblMeta->getEncodingData());
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfPkKeys = LogMsgAppendBuf(m_tblMeta->getPkData());
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfUkKeys = LogMsgAppendBuf(m_tblMeta->getUkData());
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfPkVal = LogMsgAppendBuf(m_tblMeta->getkeyData());
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColTypes = LogMsgAppendBuf(m_tblMeta->getcolTypeData());
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColFlag = LogMsgAppendBuf(m_tblMeta->getColumnFlagData());
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColNotNull = LogMsgAppendBuf(m_tblMeta->getNotNullData());
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColSigned = LogMsgAppendBuf(m_tblMeta->getSignedData());
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColDecimals = LogMsgAppendBuf(m_tblMeta->getDecimalsData());
+        if (useLMB) {
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColNames = lmb->appendBuf(m_tblMeta->getNameData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColEncoding = lmb->appendBuf(m_tblMeta->getEncodingData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfPkKeys = lmb->appendBuf(m_tblMeta->getPkData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfUkKeys = lmb->appendBuf(m_tblMeta->getUkData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfPkVal = lmb->appendBuf(m_tblMeta->getkeyData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColTypes = lmb->appendBuf(m_tblMeta->getcolTypeData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColFlag = lmb->appendBuf(m_tblMeta->getColumnFlagData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColNotNull = lmb->appendBuf(m_tblMeta->getNotNullData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColSigned = lmb->appendBuf(m_tblMeta->getSignedData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColDecimals = lmb->appendBuf(m_tblMeta->getDecimalsData());
           if (!m_timemarks.empty())
-            ((PosOfLogMsg_vc*)m_posInfo)->m_posOfTimemark = LogMsgAppendDataArray(m_timemarks);
+            ((PosOfLogMsg_vc*)m_posInfo)->m_posOfTimemark = lmb->appendDataArray(m_timemarks);
         } else {
           setColNames(m_tblMeta->getNameData());
           setColEncoding(m_tblMeta->getEncodingData());
@@ -1316,29 +1317,29 @@ struct LogRecInfo {
         break;
       }
       case EDDL:
-        if ((int)((PosOfLogMsg_vc*)m_posInfo)->m_encoding == -1 && !(useDMB && !m_encoding.empty()))
+        if ((int)((PosOfLogMsg_vc*)m_posInfo)->m_encoding == -1 && !(useLMB && !m_encoding.empty()))
           setRecordEncoding("US-ASCII");
         colCount = m_new_count > 0 ? m_new_count : m_new_cols.size();
-        if (!useDMB) {
+        if (!useLMB) {
 
           setColNames(ddlName, colCount);
           setColTypes(ddlType, colCount);
           /* Not know the actual encoding, dangerous */
         } else {
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColNames = LogMsgAppendStringArray(ddlName, colCount);
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColTypes = LogMsgAppendDataArray(ddlType, colCount);
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColNames = lmb->appendStringArray(ddlName, colCount);
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColTypes = lmb->appendDataArray(ddlType, colCount);
         }
         break;
       case EDML:
-        if ((int)((PosOfLogMsg_vc*)m_posInfo)->m_encoding == -1 && !(useDMB && !m_encoding.empty()))
+        if ((int)((PosOfLogMsg_vc*)m_posInfo)->m_encoding == -1 && !(useLMB && !m_encoding.empty()))
           setRecordEncoding("US-ASCII");
-        if (!useDMB) {
+        if (!useLMB) {
           setColNames(&dmlName, 1);
           setColTypes(dmlType, 1);
           /* Not know the actual encoding, dangerous */
         } else {
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColNames = LogMsgAppendStringArray(&dmlName, 1);
-          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColTypes = LogMsgAppendDataArray(dmlType, 1);
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColNames = lmb->appendStringArray(&dmlName, 1);
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColTypes = lmb->appendDataArray(dmlType, 1);
         }
         break;
       default:
@@ -1357,7 +1358,7 @@ struct LogRecInfo {
      * For insert type, no old values, in a similar way, delete-type
      * record has no new values. Updating record has both values.
      */
-    if (!useDMB) {
+    if (!useLMB) {
       if (m_old_count == 0 && m_new_count == 0 && (m_new_cols.size() > 0 || m_old_cols.size() > 0)) {
         setColValuesBeforeImage();
         setColValuesAfterImage();
@@ -1402,48 +1403,48 @@ struct LogRecInfo {
     } else {
       if ((int)((PosOfLogMsg_vc*)m_posInfo)->m_encoding == -1) {
         if (m_encoding.empty())
-          ((PosOfLogMsg_vc*)m_posInfo)->m_encoding = LogMsgAppendString(m_tblMeta->getEncoding());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_encoding = lmb->appendString(m_tblMeta->getEncoding());
         else
-          ((PosOfLogMsg_vc*)m_posInfo)->m_encoding = LogMsgAppendString(m_encoding);
+          ((PosOfLogMsg_vc*)m_posInfo)->m_encoding = lmb->appendString(m_encoding);
       }
       if (m_old_count == 0 && m_new_count == 0 && (m_new_cols.size() > 0 || m_old_cols.size() > 0)) {
-        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOldCols = LogMsgAppendStringArray(m_old_cols);
-        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewCols = LogMsgAppendStringArray(m_new_cols);
+        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOldCols = lmb->appendStringArray(m_old_cols);
+        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewCols = lmb->appendStringArray(m_new_cols);
       } else {
-        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOldCols = LogMsgAppendBuf(m_old_clum, m_old_count);
-        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewCols = LogMsgAppendBuf(m_new_clum, m_new_count);
+        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOldCols = lmb->appendBuf(m_old_clum, m_old_count);
+        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewCols = lmb->appendBuf(m_new_clum, m_new_count);
       }
       if (m_dbName.size())
-        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfDbName = LogMsgAppendString(m_dbName.c_str(), m_dbName.size());
+        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfDbName = lmb->appendString(m_dbName.c_str(), m_dbName.size());
       if (m_tbName.size())
-        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfTbName = LogMsgAppendString(m_tbName.c_str(), m_tbName.size());
-      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfInstance = LogMsgAppendString(m_instance.c_str(), m_instance.size());
-      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfFilterRuleVal = LogMsgAppendBuf(m_filter_value, m_filter_count);
+        ((PosOfLogMsg_vc*)m_posInfo)->m_posOfTbName = lmb->appendString(m_tbName.c_str(), m_tbName.size());
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfInstance = lmb->appendString(m_instance.c_str(), m_instance.size());
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfFilterRuleVal = lmb->appendBuf(m_filter_value, m_filter_count);
       if (m_endInfo != NULL) {
         unsigned char* endInfoToLe = new unsigned char[sizeof(EndOfLogMsg)];
         memcpy(endInfoToLe, (unsigned char*)m_endInfo, sizeof(EndOfLogMsg));
         exchangeEndInfoToLe(endInfoToLe, sizeof(EndOfLogMsg));
         ((PosOfLogMsg_vc*)m_posInfo)->m_posOfEndInfo =
-            LogMsgAppendDataArray((unsigned char*)endInfoToLe, sizeof(EndOfLogMsg));
+            lmb->appendDataArray((unsigned char*)endInfoToLe, sizeof(EndOfLogMsg));
         delete[] endInfoToLe;
       }
 
       char* posInfoToLe = new char[sizeof(PosOfLogMsg_vc)];
       memcpy(posInfoToLe, (const char*)m_posInfo, sizeof(PosOfLogMsg_vc));
       exchangePosInfoToLe(posInfoToLe, sizeof(PosOfLogMsg_vc));
-      LogMsgCopyHead(posInfoToLe, sizeof(PosOfLogMsg_vc));
-      LogMsgFroceSetHeadSize(sizeof(PosOfLogMsg_v3));
+      lmb->copyHead(posInfoToLe, sizeof(PosOfLogMsg_vc));
+      lmb->froceSetHeadSize(sizeof(PosOfLogMsg_v3));
       delete[] posInfoToLe;
 
-      const char* msg = LogMsgGetString(size);
+      const char* msg = lmb->getString(size);
       if (LOGREC_CRC) {
-        EndOfLogMsg* tail = (EndOfLogMsg*)LogMsgGetValueByOffset(((PosOfLogMsg_vc*)m_posInfo)->m_posOfEndInfo);
+        EndOfLogMsg* tail = (EndOfLogMsg*)(lmb->getValueByOffset(((PosOfLogMsg_vc*)m_posInfo)->m_posOfEndInfo));
         tail->m_crc = toLeEndianByType((uint32_t)crc32_fast(msg, (char*)tail - msg + offsetof(EndOfLogMsg, m_crc)));
       }
       /* Serialize the header */
       if (reserveMemory) {
         m_reservedMemory = true;
-        /* Only when useDMB is true, the memory of dmb should be copied */
+        /* Only when useLMB is true, the memory of dmb should be copied */
         if (m_lrDataArea->copy(msg, *size) != 0) {
           std::cout << "LOGMESSAGE: toString return 3" << std::endl;
           return NULL;
@@ -1478,9 +1479,9 @@ LogRecordImpl::LogRecordImpl(const void* ptr, size_t size)
   m_userData = NULL;
 }
 
-LogRecordImpl::LogRecordImpl(bool creating, bool useDMB)
+LogRecordImpl::LogRecordImpl(bool creating, bool useLMB)
 {
-  m_lr = new LogRecInfo(creating, useDMB);
+  m_lr = new LogRecInfo(creating, useLMB);
   m_timemarked = false;
   m_userData = NULL;
 }
@@ -1652,9 +1653,9 @@ const char* LogRecordImpl::getSerializedString(size_t* size)
   return m_lr->getSerializedString(size);
 }
 
-const char* LogRecordImpl::toString(size_t* size, bool reserveMemory)
+const char* LogRecordImpl::toString(size_t* size, LogMsgBuf* lmb, bool reserveMemory)
 {
-  return m_lr->toString(size, reserveMemory);
+  return m_lr->toString(size, lmb, reserveMemory);
 }
 
 const char* LogRecordImpl::getFormatedString(size_t* size)
