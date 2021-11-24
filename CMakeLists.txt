@@ -7,9 +7,6 @@ endif()
 
 add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:_GLIBCXX_USE_CXX11_ABI=0>)
 
-option(HIDDEN_DMB_SYMBOLS "hidden dmb symbols" FALSE)
-mark_as_advanced(HIDDEN_DMB_SYMBOLS)
-
 add_subdirectory(src)
 
 # Check if oblogmsg is being used directly or via add_subdirectory

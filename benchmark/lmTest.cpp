@@ -16,10 +16,10 @@
 #endif
 #include "itoa.h"
 #include "StrArray.h"
-
 using namespace std;
 using namespace oceanbase::logmessage;
 
+LogMsgBuf* lmb = NULL;
 const char* tableMeta = "[MYTEST,litter]\n"
                         "id,MYSQL_TYPE_LONG,8,P,\n"
                         "num1,MYSQL_TYPE_SHORT,4,,\n"
@@ -618,7 +618,7 @@ LogRecordImpl* createRecordByMeta(ITableMeta* m, int type, bool string_or_point,
 #ifdef LMB
   LogRecordImpl* r = new LogRecordImpl(true, true);
 #else
-  LogRecordImpl* r = new LogRecordImpl(true, true);
+  LogRecordImpl* r = new LogRecordImpl(true, false);
 #endif
   char *buf = NULL, *pos = NULL;
   int size = 0, csize = 0;
@@ -776,7 +776,7 @@ int dm_speed_test(int type, bool string_or_point)
       clock_gettime(CLOCK_REALTIME, &s);
       for (int i = 0; i < sc; i++) {
 #ifdef LMB
-        lrl[i]->toString(&size);
+        lrl[i]->toString(&size,lmb);
 #else
         lrl[i]->toString();
 #endif
@@ -818,13 +818,13 @@ int dm_speed_test(int type, bool string_or_point)
 int main(int argc, char* argv[])
 {
 #ifdef LMB
-  LogMsgInit();
+  lmb = new LogMsgBuf();
 #endif
   dm_speed_test(EINSERT, false);
   dm_speed_test(EUPDATE, false);
   dm_speed_test(EDELETE, false);
 #ifdef LMB
-  LogMsgDestroy();
+  delete lmb;
 #endif
   return 0;
 }

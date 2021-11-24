@@ -19,7 +19,7 @@ TEST(LogMsgFactory, LogMsgFactoryAPI)
   IMetaDataCollections* meta = LogMsgFactory::createMetaDataCollections();
   ASSERT_NE((void*)NULL, (void*)meta);
 
-  ILogRecord* record = LogMsgFactory::createLogRecord();
+  ILogRecord* record = LogMsgFactory::createLogRecord("LogRecordImpl",true);
   ASSERT_NE((void*)NULL, (void*)record);
 
   LogMsgFactory::destroy(colMeta);
