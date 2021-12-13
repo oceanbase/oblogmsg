@@ -10,10 +10,9 @@ See the Mulan PSL v2 for more details. */
 
 #include "MsgVarArea.h"
 #include "MsgType.h"
-#include "Endian.h"
+#include "MsgEndian.h"
 #include <string>
 #include <cstring>
-#include <cstdint>
 
 namespace oceanbase {
 namespace logmessage {

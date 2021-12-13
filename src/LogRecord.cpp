@@ -10,9 +10,8 @@ See the Mulan PSL v2 for more details. */
 
 #include "LogRecord.h"
 #include "MetaInfo.h"
-#include "Endian.h"
+#include "MsgEndian.h"
 #include "MsgVarArea.h"
-#include <cstdint>
 #include <cstring>
 #include <sys/time.h>
 #include <cstddef>
