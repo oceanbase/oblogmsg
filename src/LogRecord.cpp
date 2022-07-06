@@ -113,6 +113,7 @@ struct LogRecInfo {
   PosOfLogMsg* m_posInfo;
   EndOfLogMsg* m_endInfo;
   MsgVarArea* m_lrDataArea;
+  char* m_lrDataAreaPtr;
 #define MAX_CP_BUF 48
   char m_cpBuf[MAX_CP_BUF];
 
@@ -465,6 +466,7 @@ struct LogRecInfo {
     if (ret != 0)
       return -3;
     m_posInfo = (PosOfLogMsg*)v;
+    m_lrDataAreaPtr = (char*)v;
     /* version process */
     int version = toLeEndianByType(m_posInfo->m_lrVersion);
     if (version < LOGREC_VERSION) {
@@ -1235,8 +1237,15 @@ struct LogRecInfo {
     if (!m_creatingMode && m_parsedOK) {
       /* if receive serialized record and been parsed.
        * get serialized string directly
-       *
+       * posInfo may change, relpace with new posInfo
        */
+
+      char* posInfoToLe = new char[sizeof(PosOfLogMsg_vc)];
+      memcpy(posInfoToLe, (const char*)m_posInfo, sizeof(PosOfLogMsg_vc));
+      exchangePosInfoToLe(posInfoToLe, sizeof(PosOfLogMsg_vc));
+      memcpy(m_lrDataAreaPtr, posInfoToLe, sizeof(PosOfLogMsg_vc));
+      delete[] posInfoToLe;
+
       return (const char*)m_lrDataArea->getMsgBuf(*size);
     }
     /* if m_creatingMode is true or serialized
