@@ -664,6 +664,35 @@ TEST(LogRecordImpl, LogRecordImplTestPKS2)
   LogMsgFactory::destroy(table_meta);
 }
 
+TEST(LogRecordImpl, ParseTest)
+{
+  LogMsgBuf* lmb = new LogMsgBuf();
+  ILogRecord* sample = createLogRecord();
+  size_t sample_msg_size;
+  const char* sample_msg_content;
+  int checkValue = 123456789;
+  int ret = 0;
+
+  sample_msg_content = sample->toString(&sample_msg_size,lmb);
+
+  ILogRecord* sample1 = LogMsgFactory::createLogRecord("LogRecordImpl", false);
+  sample1->parse(sample_msg_content, sample_msg_size);
+  sample1->setCheckpoint(checkValue,checkValue);
+  sample1->setTimestamp(checkValue);
+
+  sample_msg_content = sample1->toString(&sample_msg_size,lmb);
+
+  ILogRecord* sample2 = LogMsgFactory::createLogRecord("LogRecordImpl", false);
+  ret = sample2->parse(sample_msg_content, sample_msg_size);
+  ASSERT_EQ(checkValue,sample2->getCheckpoint1());
+  ASSERT_EQ(checkValue,sample2->getCheckpoint2());
+  ASSERT_EQ(checkValue,sample2->getTimestamp());
+
+  LogMsgFactory::destroy(sample);
+  LogMsgFactory::destroy(sample1);
+  LogMsgFactory::destroy(sample2);
+}
+
 int main(int argc, char* argv[])
 {
   testing::InitGoogleTest(&argc, argv);
