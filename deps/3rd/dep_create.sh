@@ -103,7 +103,7 @@ function get_os_release() {
 get_os_release || exit 1
 
 OS_TAG="el$OS_RELEASE.$OS_ARCH"
-DEP_FILE="drcmsg.${OS_TAG}.deps"
+DEP_FILE="oblogmsg.${OS_TAG}.deps"
 
 echo -e "check dependencies profile for ${DEP_FILE}... \c"
 
