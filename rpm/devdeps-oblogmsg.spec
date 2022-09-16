@@ -4,7 +4,7 @@ Release: %(echo $RELEASE)%{?dist}
 
 # if you want use the parameter of rpm_create on build time,
 # uncomment below
-Summary: blogmsg
+Summary: oblogmsg
 Group: Development/Tools
 License: Commercial
 Url: oceanbase.com
@@ -33,16 +33,16 @@ Lua static library for oceanbase
 %install
 
 mkdir -p $RPM_BUILD_ROOT/%{_prefix}
-mkdir -p $RPM_BUILD_ROOT/%{_prefix}/include/blogmsg
+mkdir -p $RPM_BUILD_ROOT/%{_prefix}/include/oblogmsg
 mkdir -p $RPM_BUILD_ROOT/%{_prefix}/lib
 cd $OLDPWD/../
 sh build.sh --init release
 cd build_release
 make -j8
 cd ..
-cp build_release/src/libblogmsg.a $RPM_BUILD_ROOT/%{_prefix}/lib/
-cp build_release/src/libblogmsg.so $RPM_BUILD_ROOT/%{_prefix}/lib/
-cp include/*.h $RPM_BUILD_ROOT/%{_prefix}/include/blogmsg/
+cp build_release/src/liboblogmsg.a $RPM_BUILD_ROOT/%{_prefix}/lib/
+cp build_release/src/liboblogmsg.so $RPM_BUILD_ROOT/%{_prefix}/lib/
+cp include/*.h $RPM_BUILD_ROOT/%{_prefix}/include/oblogmsg/
 
 # package infomation
 %files
