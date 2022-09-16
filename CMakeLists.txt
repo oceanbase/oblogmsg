@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 3.20.0)
+
+include(cmake/Utils.cmake)
+include(cmake/Env.cmake)
+
 project(oblogmsg VERSION 3.2.1)
 
 if(NOT CMAKE_BUILD_TYPE)
