@@ -113,7 +113,8 @@ struct LogRecInfo {
   PosOfLogMsg* m_posInfo;
   EndOfLogMsg* m_endInfo;
   MsgVarArea* m_lrDataArea;
-  char* m_lrDataAreaPtr;
+  char* m_lrDataAreaPosInfoPtr;
+  char* m_lrDataAreaEndInfoPtr;
 #define MAX_CP_BUF 48
   char m_cpBuf[MAX_CP_BUF];
 
@@ -466,7 +467,7 @@ struct LogRecInfo {
     if (ret != 0)
       return -3;
     m_posInfo = (PosOfLogMsg*)v;
-    m_lrDataAreaPtr = (char*)v;
+    m_lrDataAreaPosInfoPtr = (char*)v;
     /* version process */
     int version = toLeEndianByType(m_posInfo->m_lrVersion);
     if (version < LOGREC_VERSION) {
@@ -509,6 +510,7 @@ struct LogRecInfo {
         m_posInfo = NULL;
         return -3;
       }
+      m_lrDataAreaEndInfoPtr = (char*)v;
       m_endInfo = new EndOfLogMsg;
       memcpy(m_endInfo, v, sizeof(EndOfLogMsg));
       m_tailParseOK = true;
@@ -1243,8 +1245,14 @@ struct LogRecInfo {
       char* posInfoToLe = new char[sizeof(PosOfLogMsg_vc)];
       memcpy(posInfoToLe, (const char*)m_posInfo, sizeof(PosOfLogMsg_vc));
       exchangePosInfoToLe(posInfoToLe, sizeof(PosOfLogMsg_vc));
-      memcpy(m_lrDataAreaPtr, posInfoToLe, sizeof(PosOfLogMsg_vc));
+      memcpy(m_lrDataAreaPosInfoPtr, posInfoToLe, sizeof(PosOfLogMsg_vc));
       delete[] posInfoToLe;
+
+      char* endInfoToLe = new char[sizeof(EndOfLogMsg_v2)];
+      memcpy(endInfoToLe, (const char*)m_endInfo, sizeof(EndOfLogMsg_v2));
+      exchangeEndInfoToLe(endInfoToLe, sizeof(EndOfLogMsg_v2));
+      memcpy(m_lrDataAreaEndInfoPtr, endInfoToLe, sizeof(EndOfLogMsg_v2));
+      delete[] endInfoToLe;
 
       return (const char*)m_lrDataArea->getMsgBuf(*size);
     }

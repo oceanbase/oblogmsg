@@ -117,7 +117,7 @@ void* create(void* argv)
   while (*(info->quit) == false) {
     ILogRecord* sample = createLogRecord();
     size_t pre_toString_size;
-    sample->toString(&pre_toString_size, lmb,true);
+    sample->toString(&pre_toString_size, lmb, true);
 
     size_t sample_msg_size;
     const char* sample_msg_content = sample->getFormatedString(&sample_msg_size);
@@ -150,7 +150,7 @@ TEST(LogRecordImpl, ConcurrencyToString)
   LogMsgBuf* lmb = new LogMsgBuf();
   ILogRecord* sample = createLogRecord();
   size_t sample_msg_size;
-  const char* sample_msg_content = sample->toString(&sample_msg_size,lmb);
+  const char* sample_msg_content = sample->toString(&sample_msg_size, lmb);
 
   /* ToString in multi-pthreads */
 
@@ -670,23 +670,56 @@ TEST(LogRecordImpl, ParseTest)
   ILogRecord* sample = createLogRecord();
   size_t sample_msg_size;
   const char* sample_msg_content;
-  int checkValue = 123456789;
-  int ret = 0;
+  // record header field
+  int srcType = 1;
+  int category = 1;
+  int recordType = 1;
+  long timeStamp = 1663253940;
+  bool b = true;
+  const uint64_t LOGREC_SUB_VERSION = 0x0200000000000000;  // sub version num
+  uint64_t setId = 123456789;
+  uint64_t getId = setId | LOGREC_SUB_VERSION;
+  int file = 10;
+  int offset = 99;
+  int sqlNo = 100;
+  // record tail field
+  int threadId = 0xFFFF0000;
+  int usec = 123456789;
 
-  sample_msg_content = sample->toString(&sample_msg_size,lmb);
+  sample_msg_content = sample->toString(&sample_msg_size, lmb);
 
   ILogRecord* sample1 = LogMsgFactory::createLogRecord("LogRecordImpl", false);
   sample1->parse(sample_msg_content, sample_msg_size);
-  sample1->setCheckpoint(checkValue,checkValue);
-  sample1->setTimestamp(checkValue);
+  // set record header field
+  sample1->setSrcType(srcType);
+  sample1->setSrcCategory(category);
+  sample1->setRecordType(recordType);
+  sample1->setTimestamp(timeStamp);
+  sample1->setFirstInLogevent(b);
+  sample1->setId(setId);
+  sample1->setCheckpoint(file, offset);
+  sample1->setSqlNo(sqlNo);
+  // set record tail field
+  sample1->setThreadId(threadId);
+  sample1->setRecordUsec(usec);
 
-  sample_msg_content = sample1->toString(&sample_msg_size,lmb);
+  sample_msg_content = sample1->toString(&sample_msg_size, lmb);
 
   ILogRecord* sample2 = LogMsgFactory::createLogRecord("LogRecordImpl", false);
-  ret = sample2->parse(sample_msg_content, sample_msg_size);
-  ASSERT_EQ(checkValue,sample2->getCheckpoint1());
-  ASSERT_EQ(checkValue,sample2->getCheckpoint2());
-  ASSERT_EQ(checkValue,sample2->getTimestamp());
+  sample2->parse(sample_msg_content, sample_msg_size);
+
+  ASSERT_EQ(srcType, sample2->getSrcType());
+  ASSERT_EQ(category, sample2->getSrcCategory());
+  ASSERT_EQ(recordType, sample2->recordType());
+  ASSERT_EQ(timeStamp, sample2->getTimestamp());
+  ASSERT_EQ(b, sample2->firstInLogevent());
+  ASSERT_EQ(getId, sample2->id());
+  ASSERT_EQ(file, sample2->getCheckpoint1());
+  ASSERT_EQ(offset, sample2->getCheckpoint2());
+  ASSERT_EQ(sqlNo, sample2->sqlNo());
+
+  ASSERT_EQ(threadId, sample2->getThreadId());
+  ASSERT_EQ(usec, sample2->getRecordUsec());
 
   LogMsgFactory::destroy(sample);
   LogMsgFactory::destroy(sample1);

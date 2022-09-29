@@ -90,7 +90,7 @@ public:
   virtual int getSrcType() const = 0;
 
   // must set
-  virtual void setSrcCategory(int cartegory) = 0;
+  virtual void setSrcCategory(int category) = 0;
   virtual int getSrcCategory() const = 0;
 
   virtual void setThreadId(uint32_t threadId) = 0;
@@ -282,7 +282,7 @@ public:
   virtual void setSrcType(int type);
   virtual int getSrcType() const;
 
-  virtual void setSrcCategory(int cartegory);
+  virtual void setSrcCategory(int category);
   virtual int getSrcCategory() const;
 
   virtual void setTimestamp(long timestamp);
