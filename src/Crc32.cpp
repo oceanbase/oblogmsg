@@ -1,9 +1,12 @@
-// //////////////////////////////////////////////////////////
-// Crc32.cpp
-// Copyright (c) 2011-2015 Stephan Brumme. All rights reserved.
-// Slicing-by-16 contributed by Bulat Ziganshin
-// see http://create.stephan-brumme.com/disclaimer.html
-//
+/* Copyright (c) 2021 OceanBase and/or its affiliates. All rights reserved.
+oblogmsg is licensed under Mulan PSL v2.
+You can use this software according to the terms and conditions of the Mulan PSL v2.
+You may obtain a copy of Mulan PSL v2 at:
+         http://license.coscl.org.cn/MulanPSL2
+THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+See the Mulan PSL v2 for more details. */
 
 // g++ -o Crc32 Crc32.cpp -O3 -lrt -march=native -mtune=native
 
