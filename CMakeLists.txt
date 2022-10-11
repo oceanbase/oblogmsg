@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.20.0)
+
+if(BUILD_AS_MAIN_PROJECT)
+  message(STATUS "oblogmsg build as main project")
+  include(cmake/Utils.cmake)
+  include(cmake/Env.cmake)
+else()
+  message(STATUS "oblogmsg build as sub project")
+endif()
+
 project(oblogmsg VERSION 3.2.1)
 
 if(NOT CMAKE_BUILD_TYPE)
