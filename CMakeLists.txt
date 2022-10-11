@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.20.0)
 
-include(cmake/Utils.cmake)
-include(cmake/Env.cmake)
+if(BUILD_AS_MAIN_PROJECT)
+  message(STATUS "drcmsg build as main project")
+  include(cmake/Utils.cmake)
+  include(cmake/Env.cmake)
+else()
+  message(STATUS "drcmsg build as sub project")
+endif()
 
 project(oblogmsg VERSION 3.2.1)
 

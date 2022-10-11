@@ -6,7 +6,7 @@ BUILD_SH=$TOPDIR/build.sh
 ALL_ARGS=("$@")
 DEP_DIR=${TOPDIR}/deps/3rd/usr/local/oceanbase/deps/devel
 TOOLS_DIR=${TOPDIR}/deps/3rd/usr/local/oceanbase/devtools
-CMAKE_COMMAND="${TOOLS_DIR}/bin/cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1"
+CMAKE_COMMAND="${TOOLS_DIR}/bin/cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DBUILD_AS_MAIN_PROJECT=ON"
 
 echo "$0 ${ALL_ARGS[@]}"
 
