@@ -85,6 +85,12 @@ struct PosOfLogMsg_v3_2 : public PosOfLogMsg_v3_1 {
   uint32_t m_posOfObTraceInfo;
   int32_t m_sqlNo;
 };
+struct PosOfLogMsg_v3_3 : public PosOfLogMsg_v3_2 {
+  uint32_t m_posOfLengthsOffset;
+  uint32_t m_posOfOriginTypesOffset;
+  uint32_t m_posOfPrecisionsOffset;
+  uint32_t m_posOfScalesOffset;
+};
 struct EndOfLogMsg_v1 {
   uint32_t m_threadId;
   uint32_t m_usec;
@@ -93,7 +99,7 @@ struct EndOfLogMsg_v2 : public EndOfLogMsg_v1 {
   uint32_t m_crc;
 };
 /* Currently used version of PosOfLogMsg */
-typedef struct PosOfLogMsg_v3_2 PosOfLogMsg_vc;
+typedef struct PosOfLogMsg_v3_3 PosOfLogMsg_vc;
 
 /* PosOfLogMsg versions listed */
 typedef struct PosOfLogMsg_vb PosOfLogMsg;
@@ -142,7 +148,7 @@ struct LogRecInfo {
   string m_instance;
   string m_encoding;
   string m_ob_trace_info;
-  bool   useLMB; 
+  bool useLMB;
   bool m_reservedMemory;
   LogRecInfo(time_t timestamp, ITableMeta* tblMeta)
       : m_creatingMode(true),
@@ -228,7 +234,7 @@ struct LogRecInfo {
       m_posInfo->m_srcCategory = SRC_FULL_RECORDED;
       this->useLMB = useLMB;
     } else {
-      this->useLMB= false;
+      this->useLMB = false;
       m_lrDataArea = new MsgVarArea(false);
     }
     m_reservedMemory = false;
@@ -453,6 +459,11 @@ struct LogRecInfo {
     ((PosOfLogMsg_v3_2*)v)->m_posOfColDefault = toLeEndianByType(((PosOfLogMsg_v3_2*)v)->m_posOfColDefault);
     ((PosOfLogMsg_v3_2*)v)->m_posOfObTraceInfo = toLeEndianByType(((PosOfLogMsg_v3_2*)v)->m_posOfObTraceInfo);
     ((PosOfLogMsg_v3_2*)v)->m_sqlNo = toLeEndianByType(((PosOfLogMsg_v3_2*)v)->m_sqlNo);
+
+    ((PosOfLogMsg_v3_3*)v)->m_posOfLengthsOffset = toLeEndianByType(((PosOfLogMsg_v3_3*)v)->m_posOfLengthsOffset);
+    ((PosOfLogMsg_v3_3*)v)->m_posOfOriginTypesOffset = toLeEndianByType(((PosOfLogMsg_v3_3*)v)->m_posOfOriginTypesOffset);
+    ((PosOfLogMsg_v3_3*)v)->m_posOfPrecisionsOffset = toLeEndianByType(((PosOfLogMsg_v3_3*)v)->m_posOfPrecisionsOffset);
+    ((PosOfLogMsg_v3_3*)v)->m_posOfScalesOffset = toLeEndianByType(((PosOfLogMsg_v3_3*)v)->m_posOfScalesOffset);
   }
 
   int parse(const void* ptr, size_t size)
@@ -776,6 +787,66 @@ struct LogRecInfo {
     }
     return NULL;
   }
+  const int64_t* colLengths() const
+  {
+    if (m_parsedOK) {
+      const void* v;
+      size_t elSize, count;
+      int ret = m_lrDataArea->getArray((GET_LOGREC_SUB_VERSION(m_posInfo->m_id) >= LOGREC_SUB_VERSION)
+                                           ? ((PosOfLogMsg_v3_3*)m_posInfo)->m_posOfLengthsOffset
+                                           : -1,
+          v,
+          elSize,
+          count);
+      if (ret != 0 || elSize != sizeof(int64_t))
+        return NULL;
+      return (int64_t*)v;
+    }
+    return NULL;
+  }
+  StrArray* colOriginTypes() const
+  {
+    if (m_parsedOK) {
+      return m_lrDataArea->getStringArray((GET_LOGREC_SUB_VERSION(m_posInfo->m_id) >= LOGREC_SUB_VERSION)
+                                              ? ((PosOfLogMsg_v3_3*)m_posInfo)->m_posOfOriginTypesOffset
+                                              : -1);
+    }
+    return NULL;
+  }
+  const int64_t* colPrecisions() const
+  {
+    if (m_parsedOK) {
+      const void* v;
+      size_t elSize, count;
+      int ret = m_lrDataArea->getArray((GET_LOGREC_SUB_VERSION(m_posInfo->m_id) >= LOGREC_SUB_VERSION)
+                                           ? ((PosOfLogMsg_v3_3*)m_posInfo)->m_posOfPrecisionsOffset
+                                           : -1,
+          v,
+          elSize,
+          count);
+      if (ret != 0 || elSize != sizeof(int64_t))
+        return NULL;
+      return (int64_t*)v;
+    }
+    return NULL;
+  }
+  const int64_t* colScales() const
+  {
+    if (m_parsedOK) {
+      const void* v;
+      size_t elSize, count;
+      int ret = m_lrDataArea->getArray((GET_LOGREC_SUB_VERSION(m_posInfo->m_id) >= LOGREC_SUB_VERSION)
+                                           ? ((PosOfLogMsg_v3_3*)m_posInfo)->m_posOfScalesOffset
+                                           : -1,
+          v,
+          elSize,
+          count);
+      if (ret != 0 || elSize != sizeof(int64_t))
+        return NULL;
+      return (int64_t*)v;
+    }
+    return NULL;
+  }
   // get default value for all columns
 
   int setRecordType(int aType)
@@ -958,6 +1029,22 @@ struct LogRecInfo {
   void setColDecimals(const std::string& data)
   {
     ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColDecimals = m_lrDataArea->appendData(data);
+  }
+  void setColLengths(const std::string& data)
+  {
+    ((PosOfLogMsg_vc*)m_posInfo)->m_posOfLengthsOffset = m_lrDataArea->appendData(data);
+  }
+  void setColOriginTypes(const std::string& data)
+  {
+    ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOriginTypesOffset = m_lrDataArea->appendData(data);
+  }
+  void setColPrecisions(const std::string& data)
+  {
+    ((PosOfLogMsg_vc*)m_posInfo)->m_posOfPrecisionsOffset = m_lrDataArea->appendData(data);
+  }
+  void setColScales(const std::string& data)
+  {
+    ((PosOfLogMsg_vc*)m_posInfo)->m_posOfScalesOffset = m_lrDataArea->appendData(data);
   }
   void setColDefault(const std::string& data)
   {
@@ -1311,6 +1398,10 @@ struct LogRecInfo {
           ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColNotNull = lmb->appendBuf(m_tblMeta->getNotNullData());
           ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColSigned = lmb->appendBuf(m_tblMeta->getSignedData());
           ((PosOfLogMsg_vc*)m_posInfo)->m_posOfColDecimals = lmb->appendBuf(m_tblMeta->getDecimalsData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfLengthsOffset = lmb->appendBuf(m_tblMeta->getColLengthData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOriginTypesOffset = lmb->appendBuf(m_tblMeta->getOriginTypeData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfPrecisionsOffset = lmb->appendBuf(m_tblMeta->getColPrecisionData());
+          ((PosOfLogMsg_vc*)m_posInfo)->m_posOfScalesOffset = lmb->appendBuf(m_tblMeta->getColScaleData());
           if (!m_timemarks.empty())
             ((PosOfLogMsg_vc*)m_posInfo)->m_posOfTimemark = lmb->appendDataArray(m_timemarks);
         } else {
@@ -1326,6 +1417,10 @@ struct LogRecInfo {
           setColNotNull(m_tblMeta->getNotNullData());
           setColSigned(m_tblMeta->getSignedData());
           setColDecimals(m_tblMeta->getDecimalsData());
+          setColLengths(m_tblMeta->getColLengthData());
+          setColOriginTypes(m_tblMeta->getOriginTypeData());
+          setColPrecisions(m_tblMeta->getColPrecisionData());
+          setColScales(m_tblMeta->getColScaleData());
           /* Serialize timemarks if needed */
           if (!m_timemarks.empty())
             setTimemarks();
@@ -1807,6 +1902,10 @@ int LogRecordImpl::getTableMeta(ITableMeta*& tblMeta)
     const uint8_t* colNotNull = m_lr->colNotNull();
     const uint8_t* colSigned = m_lr->colSigned();
     const int32_t* colDecimals = m_lr->colDecimals();
+    const int64_t* colLengths = m_lr->colLengths();
+    StrArray* colOriginTypes = m_lr->colOriginTypes();
+    const int64_t* colPrecisions = m_lr->colPrecisions();
+    const int64_t* colScales = m_lr->colScales();
     const std::vector<int> pkIndice = m_lr->pkKeys();
     size_t pkSize = pkIndice.size();
     const std::vector<int> ukIndice = m_lr->ukKeys();
@@ -1837,6 +1936,18 @@ int LogRecordImpl::getTableMeta(ITableMeta*& tblMeta)
         }
         if (colDecimals != NULL) {
           colMeta->setDecimals(toLeEndianByType(colDecimals[i]));
+        }
+        if (colLengths != NULL) {
+          colMeta->setLength(colLengths[i]);
+        }
+        if (colOriginTypes != NULL) {
+          colMeta->setOriginType((*colOriginTypes)[i]);
+        }
+        if (colPrecisions != NULL) {
+          colMeta->setPrecision(colPrecisions[i]);
+        }
+        if (colScales != NULL) {
+          colMeta->setScale(colScales[i]);
         }
         /*
         if (colDefault != NULL) {

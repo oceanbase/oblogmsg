@@ -70,6 +70,9 @@ public:
   virtual const char* getName();
   virtual int getType();
   virtual long getLength();
+  virtual const char* getOriginType();
+  virtual long getPrecision();
+  virtual long getScale();
   virtual bool isSigned();
   virtual bool isPK();
   virtual bool isRuleCol();
@@ -87,6 +90,9 @@ public:
   virtual void setName(const char* name);
   virtual void setType(int type);
   virtual void setLength(long length);
+  virtual void setOriginType(const char* origin);
+  virtual void setPrecision(long precision);
+  virtual void setScale(long scale);
   virtual void setSigned(bool b);
   virtual void setIsPK(bool b);
   virtual void setIsRuleCol(bool b);
@@ -170,6 +176,10 @@ public:
   const std::string& getSignedData();
   const std::string& getDecimalsData();
   const std::string& getDefaultData();
+  const std::string& getColLengthData();
+  const std::string& getOriginTypeData();
+  const std::string& getColPrecisionData();
+  const std::string& getColScaleData();
 
 public:
   /**
@@ -247,6 +257,10 @@ private:
   std::string m_colSignedData;
   std::string m_colDecimalsData;
   std::string m_colDefaultData;
+  std::string m_colLengthData;
+  std::string m_colOriginTypeData;
+  std::string m_colPrecisionData;
+  std::string m_colScaleData;
 
   pthread_mutex_t m_mdMutex;
   bool m_DataOk;

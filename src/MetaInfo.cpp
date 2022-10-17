@@ -158,6 +158,9 @@ struct ColMetaHeader {
   uint32_t m_encOffset;
   uint32_t m_enumSetOffset;
   uint8_t m_flag;
+  int64_t m_precision;
+  int64_t m_scale;
+  uint32_t m_originTypeOffset;
 };
 
 struct ColMetaInfo : public MetaInfo {
@@ -173,6 +176,9 @@ struct ColMetaInfo : public MetaInfo {
     m_colMetaHeader->m_isUK = false;
     m_colMetaHeader->m_notNull = false;
     m_colMetaHeader->m_flag = 0;
+    m_colMetaHeader->m_originTypeOffset = -1;
+    m_colMetaHeader->m_precision = -1;
+    m_colMetaHeader->m_scale = -1;
   }
 
   ColMetaInfo(const void* ptr, size_t size)
@@ -226,6 +232,21 @@ int IColMeta::getType()
 long IColMeta::getLength()
 {
   return m_col->m_colMetaHeader->m_length;
+}
+
+const char* IColMeta::getOriginType()
+{
+  return m_col->m_data.getString(m_col->m_colMetaHeader->m_originTypeOffset);
+}
+
+long IColMeta::getPrecision()
+{
+  return m_col->m_colMetaHeader->m_precision;
+}
+
+long IColMeta::getScale()
+{
+  return m_col->m_colMetaHeader->m_scale;
 }
 
 bool IColMeta::isSigned()
@@ -298,6 +319,21 @@ void IColMeta::setType(int type)
 void IColMeta::setLength(long length)
 {
   m_col->m_colMetaHeader->m_length = length;
+}
+
+void IColMeta::setOriginType(const char* origin)
+{
+  m_col->m_colMetaHeader->m_originTypeOffset = m_col->m_data.appendString(origin);
+}
+
+void IColMeta::setPrecision(long precision)
+{
+  m_col->m_colMetaHeader->m_precision = precision;
+}
+
+void IColMeta::setScale(long scale)
+{
+  m_col->m_colMetaHeader->m_scale = scale;
 }
 
 void IColMeta::setSigned(bool b)
@@ -1110,13 +1146,19 @@ void ITableMeta::trySerializeMetaDataAsMsgArea(std::vector<const char*>& extra_i
     m_colNameData = MsgVarArea::createStringArrayData(getColNames());
     int colcount = getColCount();
     std::vector<std::string> colencoding;
+    std::vector<std::string> originTypes;
     for (int i = 0; i < colcount; i++) {
       IColMeta* colmeta = getCol(i);
       std::string colenc = colmeta->getEncoding();
+      const char* originType = colmeta->getOriginType();
       colencoding.push_back(colenc);
+      if (originType != NULL) {
+        originTypes.push_back(originType);
+      }
     }
 
     m_encodingData = MsgVarArea::createStringArrayData(colencoding);
+    m_colOriginTypeData = MsgVarArea::createStringArrayData(originTypes);
 
     /**
      * Set the list of primary keys delimited by comma
@@ -1161,6 +1203,9 @@ void ITableMeta::trySerializeMetaDataAsMsgArea(std::vector<const char*>& extra_i
     uint8_t* col_not_null = new uint8_t[colcount];
     uint8_t* col_signed = new uint8_t[colcount];
     int32_t* col_decimals = new int32_t[colcount];
+    int64_t* col_length = new int64_t[colcount];
+    int64_t* col_precision = new int64_t[colcount];
+    int64_t* col_scale = new int64_t[colcount];
 
     for (int i = 0; i < getColCount(); i++) {
       col_types[i] = (getCol(i)->getType());
@@ -1168,12 +1213,18 @@ void ITableMeta::trySerializeMetaDataAsMsgArea(std::vector<const char*>& extra_i
       col_not_null[i] = getCol(i)->isNotNull();
       col_signed[i] = getCol(i)->isSigned();
       col_decimals[i] = getCol(i)->getDecimals();
+      col_length[i] = getCol(i)->getLength();
+      col_precision[i] = getCol(i)->getPrecision();
+      col_scale[i] = getCol(i)->getScale();
     }
     m_colTypeData = MsgVarArea::createArrayData(col_types, colcount);
     m_columnFlagData = MsgVarArea::createArrayData(col_flags, colcount);
     m_colNotNullData = MsgVarArea::createArrayData(col_not_null, colcount);
     m_colSignedData = MsgVarArea::createArrayData(col_signed, colcount);
     m_colDecimalsData = MsgVarArea::createArrayData(col_decimals, colcount);
+    m_colLengthData = MsgVarArea::createArrayData(col_length, colcount);
+    m_colPrecisionData = MsgVarArea::createArrayData(col_precision, colcount);
+    m_colScaleData = MsgVarArea::createArrayData(col_scale, colcount);
 
     delete[] col_types;
     delete[] col_flags;
@@ -1229,6 +1280,22 @@ const std::string& ITableMeta::getDecimalsData()
 const std::string& ITableMeta::getDefaultData()
 {
   return m_colDefaultData;
+}
+const std::string& ITableMeta::getColLengthData()
+{
+  return m_colLengthData;
+}
+const std::string& ITableMeta::getOriginTypeData()
+{
+  return m_colOriginTypeData;
+}
+const std::string& ITableMeta::getColPrecisionData()
+{
+  return m_colPrecisionData;
+}
+const std::string& ITableMeta::getColScaleData()
+{
+  return m_colScaleData;
 }
 
 // ------------------DBMeta----------------
