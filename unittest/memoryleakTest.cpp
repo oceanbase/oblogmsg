@@ -37,6 +37,9 @@ IColMeta* createColMeta(const char* name, int type, int length)
   colMeta->setDefault(DEF);
   colMeta->setEncoding(ENC);
   colMeta->setGenerated(true);
+  colMeta->setOriginType("varchar");
+  colMeta->setPrecision(5);
+  colMeta->setScale(4);
   return colMeta;
 }
 
