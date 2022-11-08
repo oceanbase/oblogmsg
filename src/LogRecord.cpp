@@ -161,7 +161,9 @@ struct LogRecInfo {
         m_dbMeta(NULL),
         m_expiredMetaDataCollections(NULL),
         useLMB(false),
-        m_reservedMemory(false)
+        m_reservedMemory(false),
+        m_lrDataAreaPosInfoPtr(NULL),
+        m_lrDataAreaEndInfoPtr(NULL)
   {
     m_posInfo = new PosOfLogMsg_vc;
     memset(m_posInfo, -1, sizeof(PosOfLogMsg_vc));
@@ -196,7 +198,9 @@ struct LogRecInfo {
         m_dbMeta(NULL),
         m_expiredMetaDataCollections(NULL),
         useLMB(false),
-        m_reservedMemory(false)
+        m_reservedMemory(false),
+        m_lrDataAreaPosInfoPtr(NULL),
+        m_lrDataAreaEndInfoPtr(NULL)
   {
     m_lrDataArea = new MsgVarArea(false);
     parse(ptr, size);
@@ -218,7 +222,9 @@ struct LogRecInfo {
         m_lrDataArea(NULL),
         m_tblMeta(NULL),
         m_dbMeta(NULL),
-        m_expiredMetaDataCollections(NULL)
+        m_expiredMetaDataCollections(NULL),
+        m_lrDataAreaPosInfoPtr(NULL),
+        m_lrDataAreaEndInfoPtr(NULL)
   {
     if (creating) {
       m_posInfo = new PosOfLogMsg_vc;
@@ -2010,6 +2016,9 @@ int LogRecordImpl::getTableMeta(ITableMeta*& tblMeta)
     }
     if (pkVal != NULL) {
       delete pkVal;
+    }
+    if (colOriginTypes != NULL) {
+      delete colOriginTypes;
     }
     /*
     if (colDefault != NULL) {

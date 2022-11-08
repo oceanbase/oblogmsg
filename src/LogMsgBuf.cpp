@@ -42,6 +42,7 @@ LogMsgBuf::LogMsgBuf()
   buf = new char[bufSize = DefaultLogMsgBufSize];
   defaultBuf = buf;
   bufPos = 0;
+  avg_size = 0;
 }
 
 LogMsgBuf::~LogMsgBuf()

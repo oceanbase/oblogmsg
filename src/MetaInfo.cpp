@@ -1231,6 +1231,9 @@ void ITableMeta::trySerializeMetaDataAsMsgArea(std::vector<const char*>& extra_i
     delete[] col_not_null;
     delete[] col_signed;
     delete[] col_decimals;
+    delete[] col_scale;
+    delete[] col_length;
+    delete[] col_precision;
 
     m_DataOk = true;
     pthread_mutex_unlock(&m_mdMutex);
