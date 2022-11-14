@@ -1,0 +1,20 @@
+##########################################################
+#            OBFlow Secret Scan Ignore List              #
+##########################################################
+# Above the segmentation lines there are suspected privacy information #
+# Please use the file name as the first line and the igored information #
+# should be started with space or tab #
+# Under the segmentation lines there are the folders which you need to ignore #
+##########################################################
+**
+  https://github.com/oceanbase/oblogmsg.git
+  http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/el/7/aarch64/
+  http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/el/7/x86_64/
+  http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/el/8/aarch64/
+  http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/el/8/x86_64/
+  https://github.com/google/googletest.git
+  http://license.coscl.org.cn/MulanPSL2
+  http://www.intel.com/technology/comms/perfnet/download/CRC_generators.pdf
+  http://sourceforge.net/projects/slicing-by-8/
+  https://facebook.github.io/watchman/*
+--------------------------------------------------------
