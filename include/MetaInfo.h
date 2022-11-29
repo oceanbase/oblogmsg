@@ -110,6 +110,10 @@ public:
   virtual void setGenerated(bool Generated);
   virtual void setHiddenRowKey();
   virtual bool isHiddenRowKey();
+  virtual void setPartitioned();
+  virtual bool isPartitioned();
+  virtual void setDependent();
+  virtual bool isDependent();
 
 public:
   int appendTo(std::string& s);

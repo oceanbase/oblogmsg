@@ -142,6 +142,8 @@ public:
 };
 #define COL_FLAG_GENERATED 0x01             // col is generated
 #define COL_FLAG_HIDDEN_ROWKEY (0x01 << 1)  // 0x02
+#define COL_FLAG_PARTITIONED (0x01 << 2)    // 0x04
+#define COL_FLAG_DEPENDENT (0x01 << 3)      // 0x08
 // ---------------------ColMeta-----------------------
 struct ColMetaHeader {
   uint32_t m_nameOffset;
@@ -406,7 +408,12 @@ void IColMeta::setFlag(unsigned char flag)
 }
 void IColMeta::setGenerated(bool Generated)
 {
-  m_col->m_colMetaHeader->m_flag |= COL_FLAG_GENERATED;
+  if (Generated) {
+    m_col->m_colMetaHeader->m_flag |= COL_FLAG_GENERATED;
+  } else {
+    // 0xffff - COL_FLAG_GENERATED to binary 0b11111110
+    m_col->m_colMetaHeader->m_flag &= (0xffff - COL_FLAG_GENERATED);
+  }
 }
 void IColMeta::setHiddenRowKey()
 {
@@ -415,6 +422,22 @@ void IColMeta::setHiddenRowKey()
 bool IColMeta::isHiddenRowKey()
 {
   return m_col->m_colMetaHeader->m_flag & COL_FLAG_HIDDEN_ROWKEY;
+}
+void IColMeta::setPartitioned()
+{
+  m_col->m_colMetaHeader->m_flag |= COL_FLAG_PARTITIONED;
+}
+bool IColMeta::isPartitioned()
+{
+  return m_col->m_colMetaHeader->m_flag & COL_FLAG_PARTITIONED;
+}
+void IColMeta::setDependent()
+{
+  m_col->m_colMetaHeader->m_flag |= COL_FLAG_DEPENDENT;
+}
+bool IColMeta::isDependent()
+{
+  return m_col->m_colMetaHeader->m_flag & COL_FLAG_DEPENDENT;
 }
 int IColMeta::appendTo(std::string& s)
 {
@@ -440,7 +463,6 @@ void IColMeta::setUserData(void* data)
 {
   m_userData = data;
 }
-
 void* IColMeta::getUserData()
 {
   return m_userData;
@@ -528,8 +550,7 @@ struct TableMetaInfo : public MetaInfo {
       size_t colCount = m_tblMetaHeader->m_colCount;
       size_t dataSize = m_tblMetaHeader->m_colsSize;
       const size_t maxColCount = 5120;
-      if (m_data.getRealSize() + dataSize > size ||
-          colCount > maxColCount)
+      if (m_data.getRealSize() + dataSize > size || colCount > maxColCount)
         return -11;
 
       // parse col meta
@@ -1678,7 +1699,7 @@ struct MetaDataCollectionInfo : public MetaInfo {
   ~MetaDataCollectionInfo()
   {
     if (m_removePtr)
-      delete[](char*) m_ptr;
+      delete[] (char*)m_ptr;
     clear();
   }
 

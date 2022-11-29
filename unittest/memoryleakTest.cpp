@@ -36,7 +36,11 @@ IColMeta* createColMeta(const char* name, int type, int length)
   colMeta->setNotNull(NN);
   colMeta->setDefault(DEF);
   colMeta->setEncoding(ENC);
+  colMeta->setGenerated(false);
   colMeta->setGenerated(true);
+  colMeta->setHiddenRowKey();
+  colMeta->setPartitioned();
+  colMeta->setDependent();
   colMeta->setOriginType("varchar");
   colMeta->setPrecision(5);
   colMeta->setScale(4);
@@ -146,7 +150,12 @@ void parseAndcheckRecord(LogRecordImpl& parser, const char* m, size_t msgSize)
   ASSERT_EQ(12345, col_meta->getDecimals());
   bool is_generated_column = col_meta->isGenerated();
   ASSERT_TRUE(is_generated_column);
-
+  bool is_hidden_row_key = col_meta->isHiddenRowKey();
+  ASSERT_TRUE(is_hidden_row_key);
+  bool is_partitioned_column = col_meta->isPartitioned();
+  ASSERT_TRUE(is_partitioned_column);
+  bool is_dependent_column = col_meta->isDependent();
+  ASSERT_TRUE(is_dependent_column);
   LogMsgFactory::destroy(table_meta);
 }
 
