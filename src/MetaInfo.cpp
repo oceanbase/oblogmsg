@@ -406,34 +406,45 @@ void IColMeta::setFlag(unsigned char flag)
 {
   m_col->m_colMetaHeader->m_flag = flag;
 }
-void IColMeta::setGenerated(bool Generated)
+void IColMeta::setGenerated(bool generated)
 {
-  if (Generated) {
+  if (generated) {
     m_col->m_colMetaHeader->m_flag |= COL_FLAG_GENERATED;
   } else {
-    // 0xffff - COL_FLAG_GENERATED to binary 0b11111110
-    m_col->m_colMetaHeader->m_flag &= (0xffff - COL_FLAG_GENERATED);
+    m_col->m_colMetaHeader->m_flag &= ~COL_FLAG_GENERATED;
   }
 }
-void IColMeta::setHiddenRowKey()
+void IColMeta::setHiddenRowKey(bool hiddenRowKey)
 {
-  m_col->m_colMetaHeader->m_flag |= COL_FLAG_HIDDEN_ROWKEY;
+  if (hiddenRowKey) {
+    m_col->m_colMetaHeader->m_flag |= COL_FLAG_HIDDEN_ROWKEY;
+  } else {
+    m_col->m_colMetaHeader->m_flag &= ~COL_FLAG_HIDDEN_ROWKEY;
+  }
 }
 bool IColMeta::isHiddenRowKey()
 {
   return m_col->m_colMetaHeader->m_flag & COL_FLAG_HIDDEN_ROWKEY;
 }
-void IColMeta::setPartitioned()
+void IColMeta::setPartitioned(bool partitioned)
 {
-  m_col->m_colMetaHeader->m_flag |= COL_FLAG_PARTITIONED;
+  if (partitioned) {
+    m_col->m_colMetaHeader->m_flag |= COL_FLAG_PARTITIONED;
+  } else{
+    m_col->m_colMetaHeader->m_flag &= ~COL_FLAG_PARTITIONED;
+  }
 }
 bool IColMeta::isPartitioned()
 {
   return m_col->m_colMetaHeader->m_flag & COL_FLAG_PARTITIONED;
 }
-void IColMeta::setDependent()
+void IColMeta::setDependent(bool dependent)
 {
-  m_col->m_colMetaHeader->m_flag |= COL_FLAG_DEPENDENT;
+  if (dependent) {
+    m_col->m_colMetaHeader->m_flag |= COL_FLAG_DEPENDENT;
+  } else {
+    m_col->m_colMetaHeader->m_flag &= ~COL_FLAG_DEPENDENT;
+  }
 }
 bool IColMeta::isDependent()
 {

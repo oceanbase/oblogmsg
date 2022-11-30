@@ -38,9 +38,12 @@ IColMeta* createColMeta(const char* name, int type, int length)
   colMeta->setEncoding(ENC);
   colMeta->setGenerated(false);
   colMeta->setGenerated(true);
-  colMeta->setHiddenRowKey();
-  colMeta->setPartitioned();
-  colMeta->setDependent();
+  colMeta->setHiddenRowKey(false);
+  colMeta->setHiddenRowKey(true);
+  colMeta->setPartitioned(false);
+  colMeta->setPartitioned(true);
+  colMeta->setDependent(false);
+  colMeta->setDependent(true);
   colMeta->setOriginType("varchar");
   colMeta->setPrecision(5);
   colMeta->setScale(4);

@@ -107,12 +107,12 @@ public:
   virtual void setValuesOfEnumSet(std::vector<const char*>& v);
   virtual void setValuesOfEnumSet(const char** v, size_t size);
 
-  virtual void setGenerated(bool Generated);
-  virtual void setHiddenRowKey();
+  virtual void setGenerated(bool generated = true);
+  virtual void setHiddenRowKey(bool hiddenRowKey = true);
   virtual bool isHiddenRowKey();
-  virtual void setPartitioned();
+  virtual void setPartitioned(bool partitioned = true);
   virtual bool isPartitioned();
-  virtual void setDependent();
+  virtual void setDependent(bool dependent = true);
   virtual bool isDependent();
 
 public:
