@@ -18,9 +18,10 @@ add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:_GLIBCXX_USE_CXX11_ABI=0>)
 
 add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fstack-protector-strong>)
 add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fPIC>)
+add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-znoexecstack>)
 
 add_link_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wl,-z,relro,-z,now>)
-add_link_options($<$<COMPILE_LANGUAGE:CXX,C>:-z noexecstack>)
+add_link_options($<$<COMPILE_LANGUAGE:CXX,C>:-z,noexecstack>)
 #add_link_options($<$<COMPILE_LANGUAGE:CXX,C>:-pie>)
 
 add_subdirectory(src)
