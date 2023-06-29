@@ -8,10 +8,6 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#include "LogRecord.h"
-#include "MetaInfo.h"
-#include "Endian.h"
-#include "MsgVarArea.h"
 #include <cstring>
 #include <sys/time.h>
 #include <cstddef>
@@ -19,6 +15,10 @@ See the Mulan PSL v2 for more details. */
 #include <cinttypes>
 #include <iostream>
 #include "Crc32.h"
+#include "LogRecord.h"
+#include "MetaInfo.h"
+#include "Endian.h"
+#include "MsgVarArea.h"
 
 namespace oceanbase {
 namespace logmessage {
