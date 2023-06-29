@@ -12,14 +12,12 @@ See the Mulan PSL v2 for more details. */
 #include "MetaInfo.h"
 #include "Endian.h"
 #include "MsgVarArea.h"
-#include <cstdint>
 #include <cstring>
 #include <sys/time.h>
 #include <cstddef>
 #include <cstdio>
 #include <cinttypes>
 #include <iostream>
-#include "LogMsgBuf.h"
 #include "Crc32.h"
 
 namespace oceanbase {
@@ -2265,7 +2263,7 @@ const char* LogRecordImpl::parseColumnValue(const char* columnName, size_t* size
     return NULL;
   }
   for (int i = colNames->size() - 1; i >= 0; i--) {
-    if (is_equal_str(strcasecmp((*colNames)[i], columnName)) {
+    if (is_equal_str((*colNames)[i], columnName)) {
       *columnType = colTypes[i];
       if (isPre) {
         m_lr->elementAtOld(i, value, *size);

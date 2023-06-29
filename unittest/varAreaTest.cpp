@@ -1,12 +1,9 @@
 /**
  * MsgVarArea API test
  */
-#include "MsgVarArea.h"
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <gtest/gtest.h>
+#include "MsgVarArea.h"
+#include <cstring>
 
 using namespace oceanbase::logmessage;
 
