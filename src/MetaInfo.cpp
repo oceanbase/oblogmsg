@@ -22,14 +22,14 @@ See the Mulan PSL v2 for more details. */
  *          DB2 HEAD
  *          ...
  */
-#include "MetaInfo.h"
-#include "StrArray.h"
-#include "MsgVarArea.h"
-#include <unordered_map>
-#include <cstring>
 #include <cstdlib>
 #include <cstdint>
 #include <algorithm>
+#include <unordered_map>
+#include <cstring>
+#include "MetaInfo.h"
+#include "StrArray.h"
+#include "MsgVarArea.h"
 
 namespace oceanbase {
 namespace logmessage {
@@ -50,18 +50,27 @@ public:
   }
 };
 
-class IgnoreCaseComparator {
+inline bool is_equal_str(const std::string& s1, const std::string& s2)
+{
+#ifdef _CASE_SENSITIVE_
+  return (strcmp(s1.c_str(), s2.c_str()) == 0);
+#else
+  return (strcasecmp(s1.c_str(), s2.c_str()) == 0);
+#endif
+}
+
+class KeyComparator {
 public:
   bool operator()(const std::string& s1, const std::string& s2) const
   {
-    return (strcasecmp(s1.c_str(), s2.c_str()) == 0);
+    return is_equal_str(s1, s2);
   }
 };
 
 /* In order to access data security, map indexes use string instead of char * */
-typedef std::unordered_map<const std::string, int, StrHash, IgnoreCaseComparator> NameIndexMap;
-typedef std::unordered_map<const std::string, ITableMeta*, StrHash, IgnoreCaseComparator> NameTblmetaMap;
-typedef std::unordered_map<const std::string, IDBMeta*, StrHash, IgnoreCaseComparator> NameDbmetaMap;
+typedef std::unordered_map<const std::string, int, StrHash, KeyComparator> NameIndexMap;
+typedef std::unordered_map<const std::string, ITableMeta*, StrHash, KeyComparator> NameTblmetaMap;
+typedef std::unordered_map<const std::string, IDBMeta*, StrHash, KeyComparator> NameDbmetaMap;
 
 // base class of ColMetaInfo, TableMetaInfo, BMetaInfo, ...
 struct MetaInfo {
@@ -140,10 +149,12 @@ public:
   bool m_creating;
   bool m_parsedOK;
 };
+
 #define COL_FLAG_GENERATED 0x01             // col is generated
 #define COL_FLAG_HIDDEN_ROWKEY (0x01 << 1)  // 0x02
 #define COL_FLAG_PARTITIONED (0x01 << 2)    // 0x04
 #define COL_FLAG_DEPENDENT (0x01 << 3)      // 0x08
+
 // ---------------------ColMeta-----------------------
 struct ColMetaHeader {
   uint32_t m_nameOffset;
@@ -304,10 +315,12 @@ StrArray* IColMeta::getValuesOfEnumSet()
 {
   return m_col->m_data.getStringArray(m_col->m_colMetaHeader->m_enumSetOffset);
 }
+
 bool IColMeta::isGenerated()
 {
   return m_col->m_colMetaHeader->m_flag & COL_FLAG_GENERATED;
 }
+
 void IColMeta::setName(const char* name)
 {
   m_col->m_colMetaHeader->m_nameOffset = m_col->m_data.appendString(name);
@@ -402,10 +415,12 @@ void IColMeta::setValuesOfEnumSet(const char** v, size_t size)
 {
   m_col->m_colMetaHeader->m_enumSetOffset = m_col->m_data.appendStringArray(v, size);
 }
+
 void IColMeta::setFlag(unsigned char flag)
 {
   m_col->m_colMetaHeader->m_flag = flag;
 }
+
 void IColMeta::setGenerated(bool generated)
 {
   if (generated) {
@@ -414,6 +429,7 @@ void IColMeta::setGenerated(bool generated)
     m_col->m_colMetaHeader->m_flag &= ~COL_FLAG_GENERATED;
   }
 }
+
 void IColMeta::setHiddenRowKey(bool hiddenRowKey)
 {
   if (hiddenRowKey) {
@@ -422,15 +438,17 @@ void IColMeta::setHiddenRowKey(bool hiddenRowKey)
     m_col->m_colMetaHeader->m_flag &= ~COL_FLAG_HIDDEN_ROWKEY;
   }
 }
+
 bool IColMeta::isHiddenRowKey()
 {
   return m_col->m_colMetaHeader->m_flag & COL_FLAG_HIDDEN_ROWKEY;
 }
+
 void IColMeta::setPartitioned(bool partitioned)
 {
   if (partitioned) {
     m_col->m_colMetaHeader->m_flag |= COL_FLAG_PARTITIONED;
-  } else{
+  } else {
     m_col->m_colMetaHeader->m_flag &= ~COL_FLAG_PARTITIONED;
   }
 }
@@ -1032,6 +1050,7 @@ int ITableMeta::getColIndex(const char* colName)
     return i->second;
   return -1;
 }
+
 const int* ITableMeta::getHashColumnIdx(int& hashCoumnCount, char**& hashValueList, size_t*& hashValueSizeList)
 {
   if (m_hashColumnSetted) {
@@ -1046,6 +1065,7 @@ const int* ITableMeta::getHashColumnIdx(int& hashCoumnCount, char**& hashValueLi
     return NULL;
   }
 }
+
 bool ITableMeta::hashColumnSetted()
 {
   return m_hashColumnSetted;
@@ -1055,6 +1075,7 @@ void ITableMeta::setPkinfo(const char* info)
 {
   m_tbl->m_tblMetaHeader->m_pkinfo = m_tbl->m_data.appendString(info);
 }
+
 void ITableMeta::setHashColByPK()
 {
   if (m_hashColumnIdx != NULL) {
@@ -1106,6 +1127,7 @@ void ITableMeta::setHashColByPK()
     }
   }
 }
+
 int ITableMeta::setHashCol(std::vector<std::string>& hashColumns)
 {
   int columnCount = hashColumns.size();
@@ -1142,10 +1164,12 @@ int ITableMeta::setHashCol(std::vector<std::string>& hashColumns)
   m_hashColumnSetted = true;
   return 0;
 }
+
 void ITableMeta::setHashFuncId(int id)
 {
   m_hashFuncId = id;
 }
+
 int ITableMeta::getHashFuncId()
 {
   return m_hashFuncId;
@@ -1296,14 +1320,17 @@ const std::string& ITableMeta::getkeyData()
 {
   return m_keyData;
 }
+
 const std::string& ITableMeta::getColumnFlagData()
 {
   return m_columnFlagData;
 }
+
 const std::string& ITableMeta::getNotNullData()
 {
   return m_colNotNullData;
 }
+
 const std::string& ITableMeta::getSignedData()
 {
   return m_colSignedData;
@@ -1580,7 +1607,7 @@ int IDBMeta::eraseMapIterator()
   m_db->m_tablesIterator->second = NULL;
   m_db->m_tablesIterator = m_db->m_tables.erase(m_db->m_tablesIterator);
   for (std::vector<ITableMeta*>::iterator i = m_db->m_tableOrders.begin(); i != m_db->m_tableOrders.end(); i++) {
-    if (strcasecmp(tableName, (*i)->getName()) == 0) {
+    if (is_equal_str(tableName, (*i)->getName())) {
       m_db->m_tableOrders.erase(i);
       break;
     }
@@ -1602,7 +1629,7 @@ int IDBMeta::erase(const char* tableName, bool delayDeleteMeta)
     resetMapIterator();
   }
   for (std::vector<ITableMeta*>::iterator j = m_db->m_tableOrders.begin(); j != m_db->m_tableOrders.end(); j++) {
-    if (strcasecmp(tableName, (*j)->getName()) == 0) {
+    if (is_equal_str(tableName, (*j)->getName())) {
       if (meta == NULL)
         meta = *j;
       m_db->m_tableOrders.erase(j);
@@ -1923,7 +1950,7 @@ int IMetaDataCollections::eraseMapIterator()
   m_coll->m_dbsIterator->second = NULL;
   m_coll->m_dbsIterator = m_coll->m_dbs.erase(m_coll->m_dbsIterator);
   for (std::vector<IDBMeta*>::iterator i = m_coll->m_dbOrders.begin(); i != m_coll->m_dbOrders.end(); i++) {
-    if (strcasecmp(dbName, (*i)->getName()) == 0) {
+    if (is_equal_str(dbName, (*i)->getName())) {
       m_coll->m_dbOrders.erase(i);
       break;
     }
@@ -1941,9 +1968,10 @@ int IMetaDataCollections::erase(const char* dbName, bool delayDeleteMeta)
   if (i != m_coll->m_dbs.end()) {
     meta = i->second;
     m_coll->m_dbs.erase(i);
+    resetMapIterator();
   }
   for (std::vector<IDBMeta*>::iterator i = m_coll->m_dbOrders.begin(); i != m_coll->m_dbOrders.end(); i++) {
-    if (strcasecmp(dbName, (*i)->getName()) == 0) {
+    if (is_equal_str(dbName, (*i)->getName())) {
       if (meta == NULL)
         meta = *i;
       m_coll->m_dbOrders.erase(i);

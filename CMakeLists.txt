@@ -14,15 +14,23 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ..." FORCE)
 endif()
 
-add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:_GLIBCXX_USE_CXX11_ABI=0>)
-
-add_subdirectory(src)
-
 # Check if oblogmsg is being used directly or via add_subdirectory
 set(OBLOGMSG_MASTER_PROJECT OFF)
 if(PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(OBLOGMSG_MASTER_PROJECT ON)
 endif()
+
+# If oblogmsg is used via add_subdirectory, by default we don't install it.
+option(INSTALL_OBLOGMSG "Whether or not install oblogmsg" ${OBLOGMSG_MASTER_PROJECT})
+option(OBLOGMSG_CASE_SENSITIVE "Whether drcmsg is case sensitive or not" ON)
+
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:_GLIBCXX_USE_CXX11_ABI=0>)
+if (OBLOGMSG_CASE_SENSITIVE)
+  message(STATUS "Build with _CASE_SENSITIVE_ mode")
+  add_compile_definitions(_CASE_SENSITIVE_)
+endif ()
+
+add_subdirectory(src)
 
 if(OBLOGMSG_MASTER_PROJECT)
   message(STATUS "git submodule update --init third_party/googletest")
@@ -36,9 +44,6 @@ if(OBLOGMSG_MASTER_PROJECT)
 
   add_subdirectory(benchmark)
 endif()
-
-# If oblogmsg is used via add_subdirectory, by default we don't install it.
-option(INSTALL_OBLOGMSG "Whether or not install oblogmsg" ${OBLOGMSG_MASTER_PROJECT})
 
 if(INSTALL_OBLOGMSG)
   ################# INSTALL ##########################################################################

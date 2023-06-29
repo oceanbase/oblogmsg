@@ -36,6 +36,15 @@ const uint64_t LOGREC_INVALID_ID = 0;
 bool LOGREC_CRC = false;
 bool LOGREC_PARSE_CRC = false;
 
+inline bool is_equal_str(const std::string& s1, const std::string& s2)
+{
+#ifdef _CASE_SENSITIVE_
+  return (strcmp(s1.c_str(), s2.c_str()) == 0);
+#else
+  return (strcasecmp(s1.c_str(), s2.c_str()) == 0);
+#endif
+}
+
 // LogRecord head info
 struct PosOfLogMsg_vb {
   uint8_t m_lrVersion;
@@ -467,7 +476,8 @@ struct LogRecInfo {
     ((PosOfLogMsg_v3_2*)v)->m_sqlNo = toLeEndianByType(((PosOfLogMsg_v3_2*)v)->m_sqlNo);
 
     ((PosOfLogMsg_v3_3*)v)->m_posOfLengthsOffset = toLeEndianByType(((PosOfLogMsg_v3_3*)v)->m_posOfLengthsOffset);
-    ((PosOfLogMsg_v3_3*)v)->m_posOfOriginTypesOffset = toLeEndianByType(((PosOfLogMsg_v3_3*)v)->m_posOfOriginTypesOffset);
+    ((PosOfLogMsg_v3_3*)v)->m_posOfOriginTypesOffset =
+        toLeEndianByType(((PosOfLogMsg_v3_3*)v)->m_posOfOriginTypesOffset);
     ((PosOfLogMsg_v3_3*)v)->m_posOfPrecisionsOffset = toLeEndianByType(((PosOfLogMsg_v3_3*)v)->m_posOfPrecisionsOffset);
     ((PosOfLogMsg_v3_3*)v)->m_posOfScalesOffset = toLeEndianByType(((PosOfLogMsg_v3_3*)v)->m_posOfScalesOffset);
   }
@@ -1513,7 +1523,8 @@ struct LogRecInfo {
       delete[] posInfoToLe;
       if (LOGREC_CRC) {
         EndOfLogMsg* tail = (EndOfLogMsg*)(m.c_str() + m.size() - sizeof(EndOfLogMsg));
-        tail->m_crc = toLeEndianByType((uint32_t)crc32_fast(m.c_str(), (char*)tail - m.c_str() + offsetof(EndOfLogMsg, m_crc)));
+        tail->m_crc =
+            toLeEndianByType((uint32_t)crc32_fast(m.c_str(), (char*)tail - m.c_str() + offsetof(EndOfLogMsg, m_crc)));
       }
       m_parsedOK = true;  // to support fetching
       *size = m.size();
@@ -2223,7 +2234,7 @@ const char* LogRecordImpl::parseColumnValue(const char* columnName, size_t* size
   if (colNames == NULL || colTypes == NULL)
     goto END;
   for (int i = colNames->size() - 1; i >= 0; i--) {
-    if (strcmp((*colNames)[i], columnName) == 0) {
+    if (is_equal_str((*colNames)[i], columnName)) {
       *columnType = colTypes[i];
       if (type == EUPDATE || type == EINSERT)
         m_lr->elementAtNew(i, value, *size);
@@ -2238,8 +2249,8 @@ END:
   if (colNames)
     delete colNames;
   return value;
-  ;
 }
+
 const char* LogRecordImpl::parseColumnValue(const char* columnName, size_t* size, int* columnType, bool isPre)
 {
   // LOGMSG_TYPES: not exist column type
@@ -2254,7 +2265,7 @@ const char* LogRecordImpl::parseColumnValue(const char* columnName, size_t* size
     return NULL;
   }
   for (int i = colNames->size() - 1; i >= 0; i--) {
-    if (strcasecmp((*colNames)[i], columnName) == 0) {
+    if (is_equal_str(strcasecmp((*colNames)[i], columnName)) {
       *columnType = colTypes[i];
       if (isPre) {
         m_lr->elementAtOld(i, value, *size);
@@ -2267,6 +2278,7 @@ const char* LogRecordImpl::parseColumnValue(const char* columnName, size_t* size
     delete colNames;
   return value;
 }
+
 void LogRecordImpl::setUserData(void* data)
 {
   m_userData = data;
