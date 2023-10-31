@@ -14,6 +14,12 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ..." FORCE)
 endif()
 
+add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fstack-protector-strong>)
+add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fPIC>)
+
+add_link_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wl,-z,relro,-z,now,z,noexecstack>)
+#add_link_options($<$<COMPILE_LANGUAGE:CXX,C>:-pie>)
+
 # Check if oblogmsg is being used directly or via add_subdirectory
 set(OBLOGMSG_MASTER_PROJECT OFF)
 if(PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -22,7 +28,7 @@ endif()
 
 # If oblogmsg is used via add_subdirectory, by default we don't install it.
 option(INSTALL_OBLOGMSG "Whether or not install oblogmsg" ${OBLOGMSG_MASTER_PROJECT})
-option(OBLOGMSG_CASE_SENSITIVE "Whether drcmsg is case sensitive or not" ON)
+option(OBLOGMSG_CASE_SENSITIVE "Whether oblogmsg is case sensitive or not" ON)
 
 add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:_GLIBCXX_USE_CXX11_ABI=0>)
 if (OBLOGMSG_CASE_SENSITIVE)
