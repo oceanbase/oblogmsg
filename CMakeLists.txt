@@ -17,7 +17,7 @@ endif()
 add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fstack-protector-strong>)
 add_compile_options($<$<COMPILE_LANGUAGE:CXX,C>:-fPIC>)
 
-add_link_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wl,-z,relro,-z,now,z,noexecstack>)
+add_link_options($<$<COMPILE_LANGUAGE:CXX,C>:-Wl,-z,relro,-z,now,-z,noexecstack>)
 #add_link_options($<$<COMPILE_LANGUAGE:CXX,C>:-pie>)
 
 # Check if oblogmsg is being used directly or via add_subdirectory
