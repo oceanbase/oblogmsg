@@ -22,18 +22,21 @@ struct BinLogBuf {
   size_t buf_size;
   size_t buf_used_size;
   bool needFree;
-  BinLogBuf()
+  bool m_json_diff_val;
+  BinLogBuf(bool json_diff_val = false)
   {
     buf = NULL;
     buf_size = buf_used_size = 0;
     needFree = false;
+    m_json_diff_val = json_diff_val;
   }
-  BinLogBuf(char* binlog, size_t len)
+  BinLogBuf(char* binlog, size_t len, bool json_diff_val = false)
   {
     buf = binlog;
     buf_size = len;
     buf_used_size = 0;
     needFree = false;
+    m_json_diff_val = json_diff_val;
   }
   ~BinLogBuf()
   {
@@ -41,7 +44,7 @@ struct BinLogBuf {
       delete[] buf;
   }
 };
-static inline int set_binlogBuf(BinLogBuf* buf, char* binlog, size_t len)
+static inline int set_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, bool json_diff_val = false)
 {
   bool needRealloc = true;
   if (buf->buf == NULL) {
@@ -63,10 +66,11 @@ static inline int set_binlogBuf(BinLogBuf* buf, char* binlog, size_t len)
   buf->needFree = true;
   memcpy(buf->buf, binlog, len);
   buf->buf_used_size = len;
+  buf->m_json_diff_val = json_diff_val;
   return 0;
 }
 
-static inline void exchange_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, size_t buf_used_size = 0)
+static inline void exchange_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, size_t buf_used_size = 0, bool json_diff_val = false)
 {
   if (buf->needFree == true)
     delete[] buf->buf;
@@ -74,6 +78,7 @@ static inline void exchange_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, 
   buf->buf_size = len;
   buf->buf_used_size = buf_used_size;
   buf->needFree = false;
+  buf->m_json_diff_val = json_diff_val;
 }
 static inline void exchange_binlogBuf(BinLogBuf* buf, BinLogBuf* ebuf)
 {
@@ -83,6 +88,7 @@ static inline void exchange_binlogBuf(BinLogBuf* buf, BinLogBuf* ebuf)
   if (ebuf == NULL) {
     buf->buf = NULL;
     buf->buf_size = buf->buf_used_size = 0;
+    buf->m_json_diff_val = false;
     return;
   }
   buf->buf = ebuf->buf;
@@ -93,14 +99,17 @@ static inline void exchange_binlogBuf(BinLogBuf* buf, BinLogBuf* ebuf)
   ebuf->buf_used_size = 0;
   buf->needFree = ebuf->needFree;
   ebuf->needFree = false;
+  buf->m_json_diff_val = ebuf->m_json_diff_val;
+  ebuf->m_json_diff_val = false;
 }
-static inline void get_binlogBuf(BinLogBuf* buf, char* binlog, size_t len)
+static inline void get_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, bool json_diff_val = false)
 {
   if (buf->needFree == true)
     delete[] buf->buf;
   buf->buf = binlog;
   buf->buf_used_size = buf->buf_size = len;
   buf->needFree = false;
+  buf->m_json_diff_val = json_diff_val;
 }
 static inline int create_binlogBuf(BinLogBuf* buf, size_t len = LOG_EVENT_INIT_LEN)
 {

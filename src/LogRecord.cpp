@@ -30,7 +30,11 @@ namespace logmessage {
 typedef std::vector<std::string*> ColMap;
 
 const uint16_t LOGREC_VERSION = 3;                       // version num
-const uint64_t LOGREC_SUB_VERSION = 0x0200000000000000;  // sub version num
+const uint64_t LOGREC_SUB_VERSION_2 = 0x0200000000000000;  // 版本号 3.2
+const uint64_t LOGREC_SUB_VERSION_3 = 0x0300000000000000;  // 版本号 3.3
+const uint64_t LOGREC_SUB_VERSION_4 = 0x0400000000000000;  // 版本号 3.4
+const uint64_t LOGREC_SUB_VERSION_5 = 0x0500000000000000;  // 版本号 3.5
+const uint64_t LOGREC_SUB_VERSION = 0x0500000000000000;  // sub version num
 #define GET_LOGREC_SUB_VERSION(v) ((v)&0xFF00000000000000)
 const uint64_t LOGREC_INVALID_ID = 0;
 bool LOGREC_CRC = false;
@@ -91,6 +95,14 @@ struct PosOfLogMsg_v3_3 : public PosOfLogMsg_v3_2 {
   uint32_t m_posOfPrecisionsOffset;
   uint32_t m_posOfScalesOffset;
 };
+struct PosOfLogMsg_v3_4 : public PosOfLogMsg_v3_3 {
+  uint32_t m_posOfOldColsOriginOffset;
+  uint32_t m_posOfNewColsOriginOffset;
+};
+struct PosOfLogMsg_v3_5 : public PosOfLogMsg_v3_4 {
+  uint32_t m_posOfNewColsJsonDiffOffset;
+};
+
 struct EndOfLogMsg_v1 {
   uint32_t m_threadId;
   uint32_t m_usec;
@@ -99,7 +111,7 @@ struct EndOfLogMsg_v2 : public EndOfLogMsg_v1 {
   uint32_t m_crc;
 };
 /* Currently used version of PosOfLogMsg */
-typedef struct PosOfLogMsg_v3_3 PosOfLogMsg_vc;
+typedef struct PosOfLogMsg_v3_5 PosOfLogMsg_vc;
 
 /* PosOfLogMsg versions listed */
 typedef struct PosOfLogMsg_vb PosOfLogMsg;
@@ -131,6 +143,7 @@ struct LogRecInfo {
   IMetaDataCollections* m_expiredMetaDataCollections;
   std::vector<std::string*> m_old_cols;
   std::vector<std::string*> m_new_cols;
+  std::vector<bool> m_new_json_diff_cols;
   std::vector<const char*> m_extra_infos;
   std::vector<long> m_timemarks;
   std::vector<int> m_uks;
@@ -305,6 +318,7 @@ struct LogRecInfo {
       if (m_old_count == 0 && m_new_count == 0) {
         m_old_cols.clear();
         m_new_cols.clear();
+        m_new_json_diff_cols.clear();
       } else
         m_old_count = m_new_count = 0;
       m_filter_count = 0;
@@ -330,6 +344,7 @@ struct LogRecInfo {
       if (m_old_count == 0 && m_new_count == 0) {
         m_old_cols.clear();
         m_new_cols.clear();
+        m_new_json_diff_cols.clear();
       } else
         m_old_count = m_new_count = 0;
       m_filter_count = 0;
@@ -559,6 +574,7 @@ struct LogRecInfo {
           delete *it;
       }
       m_new_cols.clear();
+      m_new_json_diff_cols.clear();
     } else
       m_new_count = 0;
   }
@@ -622,14 +638,75 @@ struct LogRecInfo {
   int putNew(std::string* val)
   {
     m_new_cols.push_back(val);
+    m_new_json_diff_cols.push_back(false);
     return 0;
   }
+  
+  int putNewJsonDiff(std::string* val)
+  {
+    m_new_cols.push_back(val);
+    m_new_json_diff_cols.push_back(true);
+    return 0;
+  }
+
   int putNew(const char* pos, unsigned int len)
   {
     get_binlogBuf(&m_new_clum[m_new_count], (char*)pos, len);
     m_new_count++;
     return 0;
   }
+
+  int putNewJsonDiff(const char* pos, unsigned int len)
+  {
+    get_binlogBuf(&m_new_clum[m_new_count], (char*)pos, len, true);
+    m_new_count++;
+    return 0;
+  }
+
+  bool isJsonDiffColVal(const char* colName)
+  {
+    int colIndex = m_tblMeta->getColIndex(colName);
+    if (colIndex < 0) 
+    {
+      return false;
+    }
+    if (m_old_count == 0 && m_new_count == 0 && (m_new_cols.size() > 0 || m_old_cols.size() > 0))
+    {
+      if (colIndex >= m_new_json_diff_cols.size()) 
+      {
+        return false;
+      }
+      return m_new_json_diff_cols[colIndex];
+    } else {
+      if (colIndex >= m_new_count)
+      {
+        return false;
+      }
+      return m_new_clum[colIndex].m_json_diff_val;
+    }
+  }
+
+  size_t getNewColsJsonDiffOffset() const
+  {
+    return (GET_LOGREC_SUB_VERSION(m_posInfo->m_id) >= LOGREC_SUB_VERSION_5) ? ((PosOfLogMsg_v3_5*)m_posInfo)->m_posOfNewColsJsonDiffOffset
+                                                                  : -1;
+  }
+
+  // get json diff of new column values
+  const uint8_t* isNewColsJsonDiff(size_t& size) const 
+  {
+    if (m_parsedOK) {
+      const void* v;
+      size_t elSize;
+      int ret = m_lrDataArea->getArray(getNewColsJsonDiffOffset(), v, elSize, size);
+      if (ret != 0 || elSize != sizeof(uint8_t))
+        return NULL;
+      return (uint8_t*)v;
+    }
+    size = 0;
+    return NULL;
+  }
+
   void initBinLogBuf(BinLogBuf* buf, int size)
   {
     if (buf == NULL)
@@ -977,6 +1054,80 @@ struct LogRecInfo {
       return m_tbName.c_str();
     size_t offset = ((PosOfLogMsg_vc*)m_posInfo)->m_posOfTbName;
     return m_lrDataArea->getString(offset);
+  }
+
+  void setOldColValuesOrigin(int size, LogMsgBuf* lmb = NULL) 
+  {
+    uint8_t* col_values_origin = new uint8_t[size];
+    for (int i = 0; i < size; i++) 
+    {
+      col_values_origin[i] = (uint8_t) FIELD_VALUE_ORIGIN::REDO;
+    }
+    if (lmb == NULL) 
+    {
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOldColsOriginOffset = m_lrDataArea->appendArray(col_values_origin, size);
+    } else {
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOldColsOriginOffset = lmb->appendDataArray(col_values_origin, size);
+    }
+    
+    delete[] col_values_origin;
+  }
+
+  void setNewColValuesOrigin(int size, LogMsgBuf* lmb = NULL) 
+  {
+    uint8_t* col_values_origin = new uint8_t[size];
+    for (int i = 0; i < size; i++) 
+    {
+      col_values_origin[i] = (uint8_t) FIELD_VALUE_ORIGIN::REDO;
+    }
+    if (lmb == NULL) 
+    {
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewColsOriginOffset = m_lrDataArea->appendArray(col_values_origin, size);
+    } else {
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewColsOriginOffset = lmb->appendDataArray(col_values_origin, size);
+    }
+    delete[] col_values_origin;
+  }
+
+  void setNewColValuesJsonDiff(std::vector<bool> new_json_diff_cols, LogMsgBuf* lmb = NULL)
+  {
+    int size = new_json_diff_cols.size();
+    uint8_t* json_diff_col_values = new uint8_t[size];
+    for (int i = 0; i < size; i++)
+    {
+      json_diff_col_values[i] = new_json_diff_cols[i];
+    }
+    if (lmb == NULL)
+    {
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewColsJsonDiffOffset = m_lrDataArea->appendArray(json_diff_col_values, size);
+    } else {
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewColsJsonDiffOffset = lmb->appendDataArray(json_diff_col_values, size);
+    }
+    
+    delete[] json_diff_col_values;
+  }
+
+  void setNewColValuesJsonDiff(const BinLogBuf* buf, int size, LogMsgBuf* lmb = NULL) 
+  {
+    uint8_t* json_diff_col_values;
+    if (buf == NULL || size == 0)
+    {
+      json_diff_col_values = new uint8_t[0];
+    } else {
+      json_diff_col_values = new uint8_t[size];
+      for (int i = 0; i < size; i++) 
+      {
+        json_diff_col_values[i] = buf[i].m_json_diff_val;
+      }
+    }
+    if (lmb == NULL) 
+    {
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewColsJsonDiffOffset = m_lrDataArea->appendArray(json_diff_col_values, size);
+    } else {
+      ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewColsJsonDiffOffset = lmb->appendDataArray(json_diff_col_values, size);
+    }
+    
+    delete[] json_diff_col_values;
   }
 
   void setColNames(std::vector<std::string>& colNames)
@@ -1480,9 +1631,15 @@ struct LogRecInfo {
       if (m_old_count == 0 && m_new_count == 0 && (m_new_cols.size() > 0 || m_old_cols.size() > 0)) {
         setColValuesBeforeImage();
         setColValuesAfterImage();
+        setOldColValuesOrigin(m_old_cols.size());
+        setNewColValuesOrigin(m_new_cols.size());
+        setNewColValuesJsonDiff(m_new_json_diff_cols);
       } else {
         setColValuesBeforeImage_1();
         setColValuesAfterImage_1();
+        setOldColValuesOrigin(m_old_count);
+        setNewColValuesOrigin(m_new_count);
+        setNewColValuesJsonDiff(m_new_clum, m_new_count);
       }
       setRuleColValues();
       if (m_endInfo != NULL) {
@@ -1528,9 +1685,15 @@ struct LogRecInfo {
       if (m_old_count == 0 && m_new_count == 0 && (m_new_cols.size() > 0 || m_old_cols.size() > 0)) {
         ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOldCols = lmb->appendStringArray(m_old_cols);
         ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewCols = lmb->appendStringArray(m_new_cols);
+        setOldColValuesOrigin(m_old_cols.size(), lmb);
+        setNewColValuesOrigin(m_new_cols.size(), lmb);
+        setNewColValuesJsonDiff(m_new_json_diff_cols, lmb);
       } else {
         ((PosOfLogMsg_vc*)m_posInfo)->m_posOfOldCols = lmb->appendBuf(m_old_clum, m_old_count);
         ((PosOfLogMsg_vc*)m_posInfo)->m_posOfNewCols = lmb->appendBuf(m_new_clum, m_new_count);
+        setOldColValuesOrigin(m_old_count, lmb);
+        setNewColValuesOrigin(m_new_count, lmb);
+        setNewColValuesJsonDiff(m_new_clum, m_new_count, lmb);
       }
       if (m_dbName.size())
         ((PosOfLogMsg_vc*)m_posInfo)->m_posOfDbName = lmb->appendString(m_dbName.c_str(), m_dbName.size());
@@ -1688,9 +1851,29 @@ int LogRecordImpl::putNew(std::string* val)
 {
   return m_lr->putNew(val);
 }
+
+int LogRecordImpl::putNewJsonDiff(std::string* val)
+{
+  return m_lr->putNewJsonDiff(val);
+}
+
 int LogRecordImpl::putOld(const char* pos, int len)
 {
   return m_lr->putOld(pos, len);
+}
+
+int LogRecordImpl::putNewJsonDiff(const char* pos, int len)
+{
+  return m_lr->putNewJsonDiff(pos, len);
+}
+bool LogRecordImpl::isJsonDiffColVal(const char* colName)
+{
+  return m_lr->isJsonDiffColVal(colName);
+}
+
+const uint8_t* LogRecordImpl::isNewColsJsonDiff(size_t& size) const
+{
+  return m_lr->isNewColsJsonDiff(size);
 }
 
 int LogRecordImpl::putNew(const char* pos, int len)

@@ -74,6 +74,12 @@ enum SOURCE_CATEGORY {
   SRC_NO
 };
 
+enum FIELD_VALUE_ORIGIN {
+  REDO = 0,               // 从日志中解析出的字段值
+  BACK_QUERY = 1,         // 通过回查得到的字段值
+  PADDING = 2
+};
+
 class ITableMeta;
 class IDBMeta;
 class IMetaDataCollections;
@@ -179,8 +185,15 @@ public:
    */
   virtual int putOld(std::string* val) = 0;
   virtual int putNew(std::string* val) = 0;
+  virtual int putNewJsonDiff(std::string* val) = 0;
   virtual int putOld(const char* pos, int len) = 0;
   virtual int putNew(const char* pos, int len) = 0;
+  virtual int putNewJsonDiff(const char* pos, int len) = 0;
+  /**
+   * 获取指定列名的值是否为 json_diff_partial 的形式
+  */
+  virtual bool isJsonDiffColVal(const char* colName) = 0;
+  virtual const uint8_t* isNewColsJsonDiff(size_t& size) const = 0;
   virtual void setNewColumn(BinLogBuf* buf, int size) = 0;
   virtual void setOldColumn(BinLogBuf* buf, int size) = 0;
   virtual int getColumnCount() = 0;
@@ -360,8 +373,15 @@ public:
 
   virtual int putOld(std::string* val);
   virtual int putNew(std::string* val);
+  virtual int putNewJsonDiff(std::string* val);
   virtual int putOld(const char* pos, int len);
   virtual int putNew(const char* pos, int len);
+  virtual int putNewJsonDiff(const char* pos, int len);
+  /**
+   * 获取指定列名的值是否为 json_diff_partial 的形式
+  */
+  virtual bool isJsonDiffColVal(const char* colName);
+  virtual const uint8_t* isNewColsJsonDiff(size_t& size) const;
   virtual void setNewColumn(BinLogBuf* buf, int size);
   virtual void setOldColumn(BinLogBuf* buf, int size);
   virtual int getColumnCount();
