@@ -63,7 +63,9 @@ enum SOURCE_TYPE {
   SRC_ORACLE = 0x03,         // Oracle
   SRC_OCEANBASE_1_0 = 0x04,  // Oceanbase V1
   SRC_DB2 = 0x05,            // DB2
-  SRC_UNKNOWN = 0x06
+  SRC_POSTGRESQL = 0x06,     // PostgreSQL
+  SRC_SQLSERVER = 0x07,      // SQLServer
+  SRC_UNKNOWN = 0xff
 };
 
 enum SOURCE_CATEGORY {
