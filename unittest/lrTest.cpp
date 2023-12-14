@@ -83,8 +83,8 @@ ILogRecord* createLogRecord(bool useDMB = true, bool useBinlogBuf = false)
   std::string* s3 = new std::string("Hello3");
   std::string* s4 = new std::string("Hello4");
 
-  std::string* full_json = new std::string("{\"name\":\"LiMing\",\"age\",24,\"address\":\"China\"}");
-  std::string* json_diff = new std::string("{\"op\":\"replace\",\"value\":\"ab\",\"path\":\"$.name\"}");
+  std::string* full_value = new std::string("{\"name\":\"LiMing\",\"age\",24,\"address\":\"China\"}");
+  std::string* partial_diff = new std::string("{\"op\":\"replace\",\"value\":\"ab\",\"path\":\"$.name\"}");
 
   ITableMeta* t1 = createTableMeta();
   t1->setName("table1");
@@ -111,18 +111,18 @@ ILogRecord* createLogRecord(bool useDMB = true, bool useBinlogBuf = false)
     lr->setOldColumn(oldVals, 3);
     lr->setNewColumn(newVals, 3);
     lr->putOld(s1->c_str(), s1->length());
-    lr->putOld(NULL, 0);
-    lr->putOld(full_json->c_str(), full_json->length());
-    lr->putNew(s3->c_str(), s3->length());
-    lr->putNew(s4->c_str(), s4->length());
-    lr->putNewJsonDiff(json_diff->c_str(), json_diff->length());
+    lr->putOld(NULL, 0, BACK_QUERY);
+    lr->putOld(full_value->c_str(), full_value->length(), PADDING);
+    lr->putNew(s3->c_str(), s3->length(), PADDING);
+    lr->putNew(s4->c_str(), s4->length(), BACK_QUERY);
+    lr->putNewDiff(partial_diff->c_str(), partial_diff->length(), REDO);
   } else {
-    lr->putOld(s1);
+    lr->putOld(s1, PADDING);
     lr->putOld(NULL);
-    lr->putOld(full_json);
+    lr->putOld(full_value, PADDING);
     lr->putNew(s3);
-    lr->putNew(s4);
-    lr->putNewJsonDiff(json_diff);
+    lr->putNew(s4, PADDING);
+    lr->putNewDiff(partial_diff);
   }
 
   lr->setUserData(NULL);
@@ -714,7 +714,7 @@ TEST(LogRecordImpl, LogRecordImplTestPKS2)
 TEST(LogRecordImpl, ParseTest1)
 {
   LogMsgBuf* lmb = new LogMsgBuf();
-  ILogRecord* sample = createLogRecord(true);
+  ILogRecord* sample = createLogRecord(true, false);
   size_t sample_msg_size;
   const char* sample_msg_content;
   // record header field
@@ -733,9 +733,15 @@ TEST(LogRecordImpl, ParseTest1)
   int threadId = 0xFFFF0000;
   int usec = 123456789;
 
-  ASSERT_FALSE(sample->isJsonDiffColVal("col1"));
-  ASSERT_FALSE(sample->isJsonDiffColVal("col2"));
-  ASSERT_TRUE(sample->isJsonDiffColVal("col3"));
+  ASSERT_FALSE(sample->getNewValueDiff()[0]);
+  ASSERT_FALSE(sample->getNewValueDiff()[1]);
+  ASSERT_TRUE(sample->getNewValueDiff()[2]);
+  ASSERT_EQ((u_int8_t) 2, sample->getOldValueOrigin()[0]);
+  ASSERT_EQ((u_int8_t) 0, sample->getOldValueOrigin()[1]);
+  ASSERT_EQ((u_int8_t) 2, sample->getOldValueOrigin()[2]);
+  ASSERT_EQ((u_int8_t) 0, sample->getNewValueOrigin()[0]);
+  ASSERT_EQ((u_int8_t) 2, sample->getNewValueOrigin()[1]);
+  ASSERT_EQ((u_int8_t) 0, sample->getNewValueOrigin()[2]);
 
   sample_msg_content = sample->toString(&sample_msg_size, lmb);
 
@@ -772,12 +778,24 @@ TEST(LogRecordImpl, ParseTest1)
   ASSERT_EQ(threadId, sample2->getThreadId());
   ASSERT_EQ(usec, sample2->getRecordUsec());
 
-  size_t size;
-  const uint8_t* new_cols_json_diff = sample2->isNewColsJsonDiff(size);
-  ASSERT_EQ((uint8_t) 0, new_cols_json_diff[0]);
-  ASSERT_EQ((uint8_t) 0, new_cols_json_diff[1]);
-  ASSERT_EQ((uint8_t) 1, new_cols_json_diff[2]);
-  ASSERT_EQ((size_t) 3, size);
+  size_t diff_size;
+  const uint8_t* new_cols_value_diff = sample2->parsedNewValueDiff(diff_size);
+  ASSERT_EQ((uint8_t) 0, new_cols_value_diff[0]);
+  ASSERT_EQ((uint8_t) 0, new_cols_value_diff[1]);
+  ASSERT_EQ((uint8_t) 1, new_cols_value_diff[2]);
+  ASSERT_EQ((size_t) 3, diff_size);
+  size_t old_value_origin_size;
+  const uint8_t* old_value_origins = sample2->parsedOldValueOrigins(old_value_origin_size);
+  ASSERT_EQ((uint8_t) PADDING, old_value_origins[0]);
+  ASSERT_EQ((uint8_t) REDO, old_value_origins[1]);
+  ASSERT_EQ((uint8_t) PADDING, old_value_origins[2]);
+  ASSERT_EQ((size_t) 3, old_value_origin_size);
+  size_t new_value_origin_size;
+  const uint8_t* new_value_origins = sample2->parsedNewValueOrigins(new_value_origin_size);
+  ASSERT_EQ((uint8_t) REDO, new_value_origins[0]);
+  ASSERT_EQ((uint8_t) PADDING, new_value_origins[1]);
+  ASSERT_EQ((uint8_t) REDO, new_value_origins[2]);
+  ASSERT_EQ((size_t) 3, new_value_origin_size);
 
   LogMsgFactory::destroy(sample);
   LogMsgFactory::destroy(sample1);
@@ -787,7 +805,7 @@ TEST(LogRecordImpl, ParseTest1)
 TEST(LogRecordImpl, ParseTest2)
 {
   LogMsgBuf* lmb = new LogMsgBuf();
-  ILogRecord* sample = createLogRecord(true);
+  ILogRecord* sample = createLogRecord(false, true);
   size_t sample_msg_size;
   const char* sample_msg_content;
   // record header field
@@ -808,9 +826,18 @@ TEST(LogRecordImpl, ParseTest2)
   // record data field
   const char* tableName = "table";
   const char* dbName = "database";
-  ASSERT_FALSE(sample->isJsonDiffColVal("col1"));
-  ASSERT_FALSE(sample->isJsonDiffColVal("col2"));
-  ASSERT_TRUE(sample->isJsonDiffColVal("col3"));
+
+  unsigned int count;
+  ASSERT_FALSE(sample->newCols(count)[0].m_diff_val);
+  ASSERT_FALSE(sample->newCols(count)[1].m_diff_val);
+  ASSERT_TRUE(sample->newCols(count)[2].m_diff_val);
+  ASSERT_EQ((u_int8_t) REDO, sample->oldCols(count)[0].m_origin);
+  ASSERT_EQ((u_int8_t) BACK_QUERY, sample->oldCols(count)[1].m_origin);
+  ASSERT_EQ((u_int8_t) PADDING, sample->oldCols(count)[2].m_origin);
+  ASSERT_EQ((u_int8_t) PADDING, sample->newCols(count)[0].m_origin);
+  ASSERT_EQ((u_int8_t) BACK_QUERY, sample->newCols(count)[1].m_origin);
+  ASSERT_EQ((u_int8_t) REDO, sample->newCols(count)[2].m_origin);
+
   sample_msg_content = sample->toString(&sample_msg_size, lmb);
   ILogRecord* sample1 = new LogRecordImpl(false, false);
   sample1->parse(sample_msg_content, sample_msg_size);
@@ -845,12 +872,26 @@ TEST(LogRecordImpl, ParseTest2)
   ASSERT_EQ(sqlNo, sample2->sqlNo());
   ASSERT_EQ(threadId, sample2->getThreadId());
   ASSERT_EQ(usec, sample2->getRecordUsec());
+
   size_t size;
-  const uint8_t* new_cols_json_diff = sample2->isNewColsJsonDiff(size);
-  ASSERT_EQ((uint8_t) 0, new_cols_json_diff[0]);
-  ASSERT_EQ((uint8_t) 0, new_cols_json_diff[1]);
-  ASSERT_EQ((uint8_t) 1, new_cols_json_diff[2]);
+  const uint8_t* new_cols_value_diff = sample2->parsedNewValueDiff(size);
+  ASSERT_EQ((uint8_t) 0, new_cols_value_diff[0]);
+  ASSERT_EQ((uint8_t) 0, new_cols_value_diff[1]);
+  ASSERT_EQ((uint8_t) 1, new_cols_value_diff[2]);
   ASSERT_EQ((size_t) 3, size);
+  size_t old_value_origin_size;
+  const uint8_t* old_value_origins = sample2->parsedOldValueOrigins(old_value_origin_size);
+  ASSERT_EQ((uint8_t) REDO, old_value_origins[0]);
+  ASSERT_EQ((uint8_t) BACK_QUERY, old_value_origins[1]);
+  ASSERT_EQ((uint8_t) PADDING, old_value_origins[2]);
+  ASSERT_EQ((size_t) 3, old_value_origin_size);
+  size_t new_value_origin_size;
+  const uint8_t* new_value_origins = sample2->parsedNewValueOrigins(new_value_origin_size);
+  ASSERT_EQ((uint8_t) PADDING, new_value_origins[0]);
+  ASSERT_EQ((uint8_t) BACK_QUERY, new_value_origins[1]);
+  ASSERT_EQ((uint8_t) REDO, new_value_origins[2]);
+  ASSERT_EQ((size_t) 3, new_value_origin_size);
+
   LogMsgFactory::destroy(sample);
   LogMsgFactory::destroy(sample1);
   LogMsgFactory::destroy(sample2);

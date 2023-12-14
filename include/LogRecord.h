@@ -76,12 +76,6 @@ enum SOURCE_CATEGORY {
   SRC_NO
 };
 
-enum FIELD_VALUE_ORIGIN {
-  REDO = 0,               // 从日志中解析出的字段值
-  BACK_QUERY = 1,         // 通过回查得到的字段值
-  PADDING = 2
-};
-
 class ITableMeta;
 class IDBMeta;
 class IMetaDataCollections;
@@ -187,15 +181,8 @@ public:
    */
   virtual int putOld(std::string* val) = 0;
   virtual int putNew(std::string* val) = 0;
-  virtual int putNewJsonDiff(std::string* val) = 0;
   virtual int putOld(const char* pos, int len) = 0;
   virtual int putNew(const char* pos, int len) = 0;
-  virtual int putNewJsonDiff(const char* pos, int len) = 0;
-  /**
-   * 获取指定列名的值是否为 json_diff_partial 的形式
-  */
-  virtual bool isJsonDiffColVal(const char* colName) = 0;
-  virtual const uint8_t* isNewColsJsonDiff(size_t& size) const = 0;
   virtual void setNewColumn(BinLogBuf* buf, int size) = 0;
   virtual void setOldColumn(BinLogBuf* buf, int size) = 0;
   virtual int getColumnCount() = 0;
@@ -282,6 +269,23 @@ public:
 
   // get serialized string of record directly
   virtual const char* getSerializedString(size_t* size) = 0;
+
+  virtual int putOld(std::string* val, VALUE_ORIGIN origin) = 0;
+  virtual int putNew(std::string* val, VALUE_ORIGIN origin) = 0;
+  virtual int putOld(const char* pos, int len, VALUE_ORIGIN origin) = 0;
+  virtual int putNew(const char* pos, int len, VALUE_ORIGIN origin) = 0;
+  virtual int putNewDiff(std::string* val, VALUE_ORIGIN origin = REDO) = 0;
+  virtual int putNewDiff(const char* pos, int len, VALUE_ORIGIN origin = REDO) = 0;
+  // 获取持久化之前指定列名的 new 值是否为 diff_partial 的形式
+  virtual const std::vector<bool>& getNewValueDiff() const = 0;
+  // 获取持久化之后 new 值的 diff_partial 数组
+  virtual const uint8_t* parsedNewValueDiff(size_t& size) const = 0;
+  // 获取持久化之前 new/old 值的来源
+  virtual std::vector<VALUE_ORIGIN>& getNewValueOrigin() = 0;
+  virtual std::vector<VALUE_ORIGIN>& getOldValueOrigin() = 0;
+  // 获取持久化之后 new/old 值的来源
+  virtual const uint8_t* parsedNewValueOrigins(size_t& size) const = 0;
+  virtual const uint8_t* parsedOldValueOrigins(size_t& size) const = 0;
 };
 
 class LogRecordImpl : public ILogRecord {
@@ -375,15 +379,8 @@ public:
 
   virtual int putOld(std::string* val);
   virtual int putNew(std::string* val);
-  virtual int putNewJsonDiff(std::string* val);
   virtual int putOld(const char* pos, int len);
   virtual int putNew(const char* pos, int len);
-  virtual int putNewJsonDiff(const char* pos, int len);
-  /**
-   * 获取指定列名的值是否为 json_diff_partial 的形式
-  */
-  virtual bool isJsonDiffColVal(const char* colName);
-  virtual const uint8_t* isNewColsJsonDiff(size_t& size) const;
   virtual void setNewColumn(BinLogBuf* buf, int size);
   virtual void setOldColumn(BinLogBuf* buf, int size);
   virtual int getColumnCount();
@@ -455,6 +452,23 @@ public:
   virtual const char* obTraceInfo();
 
   virtual const char* getSerializedString(size_t* size);
+
+  virtual int putOld(std::string* val, VALUE_ORIGIN origin);
+  virtual int putNew(std::string* val, VALUE_ORIGIN origin);
+  virtual int putOld(const char* pos, int len, VALUE_ORIGIN origin);
+  virtual int putNew(const char* pos, int len, VALUE_ORIGIN origin);
+  virtual int putNewDiff(std::string* val, VALUE_ORIGIN origin = REDO);
+  virtual int putNewDiff(const char* pos, int len, VALUE_ORIGIN origin = REDO);
+  // 获取持久化之前指定列名的 new 值是否为 diff_partial 的形式
+  virtual const std::vector<bool>& getNewValueDiff() const;
+  // 获取持久化之后 new 值的 diff_partial 数组
+  virtual const uint8_t* parsedNewValueDiff(size_t& size) const;
+  // 获取持久化之前 new/old 值的来源
+  virtual std::vector<VALUE_ORIGIN>& getNewValueOrigin();
+  virtual std::vector<VALUE_ORIGIN>& getOldValueOrigin();
+  // 获取持久化之后 new/old 值的来源
+  virtual const uint8_t* parsedNewValueOrigins(size_t& size) const;
+  virtual const uint8_t* parsedOldValueOrigins(size_t& size) const;
 
 protected:
   LogRecInfo* m_lr;

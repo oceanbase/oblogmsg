@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 #define LOG_EVENT_INIT_LEN (1024 * 32)
 #include <cstdlib>
 #include <cstring>
+#include "ValueOrigin.h"
 
 namespace oceanbase {
 namespace logmessage {
@@ -22,21 +23,24 @@ struct BinLogBuf {
   size_t buf_size;
   size_t buf_used_size;
   bool needFree;
-  bool m_json_diff_val;
-  BinLogBuf(bool json_diff_val = false)
+  bool m_diff_val;
+  VALUE_ORIGIN m_origin;
+  BinLogBuf(bool diff_val = false, VALUE_ORIGIN origin = REDO)
   {
     buf = NULL;
     buf_size = buf_used_size = 0;
     needFree = false;
-    m_json_diff_val = json_diff_val;
+    m_diff_val = diff_val;
+    m_origin = origin;
   }
-  BinLogBuf(char* binlog, size_t len, bool json_diff_val = false)
+  BinLogBuf(char* binlog, size_t len, bool diff_val = false, VALUE_ORIGIN origin = REDO)
   {
     buf = binlog;
     buf_size = len;
     buf_used_size = 0;
     needFree = false;
-    m_json_diff_val = json_diff_val;
+    m_diff_val = diff_val;
+    m_origin = origin;
   }
   ~BinLogBuf()
   {
@@ -44,7 +48,7 @@ struct BinLogBuf {
       delete[] buf;
   }
 };
-static inline int set_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, bool json_diff_val = false)
+static inline int set_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, bool diff_val = false, VALUE_ORIGIN origin = REDO)
 {
   bool needRealloc = true;
   if (buf->buf == NULL) {
@@ -66,11 +70,12 @@ static inline int set_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, bool j
   buf->needFree = true;
   memcpy(buf->buf, binlog, len);
   buf->buf_used_size = len;
-  buf->m_json_diff_val = json_diff_val;
+  buf->m_diff_val = diff_val;
+  buf->m_origin = origin;
   return 0;
 }
 
-static inline void exchange_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, size_t buf_used_size = 0, bool json_diff_val = false)
+static inline void exchange_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, size_t buf_used_size = 0, bool diff_val = false, VALUE_ORIGIN origin = REDO)
 {
   if (buf->needFree == true)
     delete[] buf->buf;
@@ -78,7 +83,8 @@ static inline void exchange_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, 
   buf->buf_size = len;
   buf->buf_used_size = buf_used_size;
   buf->needFree = false;
-  buf->m_json_diff_val = json_diff_val;
+  buf->m_diff_val = diff_val;
+  buf->m_origin = origin;
 }
 static inline void exchange_binlogBuf(BinLogBuf* buf, BinLogBuf* ebuf)
 {
@@ -88,7 +94,8 @@ static inline void exchange_binlogBuf(BinLogBuf* buf, BinLogBuf* ebuf)
   if (ebuf == NULL) {
     buf->buf = NULL;
     buf->buf_size = buf->buf_used_size = 0;
-    buf->m_json_diff_val = false;
+    buf->m_diff_val = false;
+    buf->m_origin = REDO;
     return;
   }
   buf->buf = ebuf->buf;
@@ -99,17 +106,20 @@ static inline void exchange_binlogBuf(BinLogBuf* buf, BinLogBuf* ebuf)
   ebuf->buf_used_size = 0;
   buf->needFree = ebuf->needFree;
   ebuf->needFree = false;
-  buf->m_json_diff_val = ebuf->m_json_diff_val;
-  ebuf->m_json_diff_val = false;
+  buf->m_diff_val = ebuf->m_diff_val;
+  ebuf->m_diff_val = false;
+  buf->m_origin = ebuf->m_origin;
+  ebuf->m_origin = REDO;
 }
-static inline void get_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, bool json_diff_val = false)
+static inline void get_binlogBuf(BinLogBuf* buf, char* binlog, size_t len, bool diff_val = false, VALUE_ORIGIN origin = REDO)
 {
   if (buf->needFree == true)
     delete[] buf->buf;
   buf->buf = binlog;
   buf->buf_used_size = buf->buf_size = len;
   buf->needFree = false;
-  buf->m_json_diff_val = json_diff_val;
+  buf->m_diff_val = diff_val;
+  buf->m_origin = origin;
 }
 static inline int create_binlogBuf(BinLogBuf* buf, size_t len = LOG_EVENT_INIT_LEN)
 {
