@@ -1,7 +1,7 @@
 [target-default]
 os=7
 arch=x86_64
-repo=http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/el/7/x86_64/
+repo=http://mirrors.aliyun.com/oceanbase/development-kit/el/7/x86_64/
 
 [tools]
 obdevtools-cmake-3.22.1-1.el7.x86_64.rpm
