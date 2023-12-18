@@ -4,6 +4,6 @@ arch=x86_64
 repo=http://mirrors.aliyun.com/oceanbase/development-kit/el/7/x86_64/
 
 [tools]
-obdevtools-cmake-3.22.1-1.el7.x86_64.rpm
+obdevtools-cmake-3.22.1-22022100417.el7.x86_64.rpm
 obdevtools-gcc9-9.3.0-52022092914.el7.x86_64.rpm
 
