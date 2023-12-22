@@ -1,17 +1,17 @@
 /**
  * ILogRecord API test
  */
-#include "MetaInfo.h"
-#include "LogRecord.h"
-#include "StrArray.h"
-#include "LogMsgFactory.h"
-#include "LogMsgBuf.h"
 #include <stdio.h>
 #include <pthread.h>
 #include <time.h>
 #include <iostream>
 #include <fstream>
 #include <gtest/gtest.h>
+#include "MetaInfo.h"
+#include "LogRecord.h"
+#include "StrArray.h"
+#include "LogMsgFactory.h"
+#include "LogMsgBuf.h"
 
 #define DB_NAME "hello-test"
 #define PK_VALUE "hello"
@@ -24,6 +24,16 @@
 #define NN true
 #define DEF "default value for col1"
 #define ENC "utf-8"
+
+#ifdef _CASE_SENSITIVE_
+#define C1 "col1"
+#define C2 "Col1"
+#define C3 "COL1"
+#else
+#define C1 "col1"
+#define C2 "col2"
+#define C3 "col3"
+#endif
 
 using namespace oceanbase::logmessage;
 
@@ -235,7 +245,6 @@ TEST(LogRecordImpl, ParseAndGet) {
 
 TEST(LogRecordImpl, LogRecordImplAPI)
 {
-
   LogRecordImpl lr(time(NULL), NULL);
   std::string* s1 = new std::string("Hello1");
   //	std::string *s2 = NULL;
@@ -244,9 +253,9 @@ TEST(LogRecordImpl, LogRecordImplAPI)
   std::string* s5 = new std::string("Hello5");
   std::string* s6 = new std::string("Hello6");
   ITableMeta* t1 = createTableMeta();
-  IColMeta* c1 = createColMeta("col1", 253, 256);
-  IColMeta* c2 = createColMeta("col2", 253, 256);
-  IColMeta* c3 = createColMeta("col3", 253, 256);
+  IColMeta* c1 = createColMeta(C1, 253, 256);
+  IColMeta* c2 = createColMeta(C2, 253, 256);
+  IColMeta* c3 = createColMeta(C3, 253, 256);
   ASSERT_EQ((int)7, (int)strlen(specialString));
   c1->setDefault(specialString, 15);
   const char* defaultStr = c1->getDefault();
@@ -259,10 +268,10 @@ TEST(LogRecordImpl, LogRecordImplAPI)
   t1->append(c2->getName(), c2);
   t1->append(c3->getName(), c3);
 
-  t1->setPKs("col1");
+  t1->setPKs(C1);
   t1->setPkinfo("(0)");
   // t2->setPKIndice(std::vector<int>(0,2));
-  t1->setUKs("col2");
+  t1->setUKs(C2);
   t1->setUkinfo("(1)");
 
   void** tableUserDataPtr = t1->getUserDataPtr();
@@ -349,9 +358,9 @@ TEST(LogRecordImpl, LogRecordImplAPI)
   int ret = parser.getTableMeta(table_meta);
   ASSERT_EQ(ret, 0);
   const char* pks = table_meta ? (table_meta->getPKs()) : "NULL";
-  EXPECT_STREQ(pks, "col1");
+  EXPECT_STREQ(pks, C1);
   const char* uks = table_meta ? (table_meta->getUKs()) : "NULL";
-  ASSERT_STREQ(uks, "col2");
+  ASSERT_STREQ(uks, C2);
 
   int64_t column_count = table_meta ? table_meta->getColCount() : -1;
   ASSERT_EQ(column_count, 3);
@@ -366,7 +375,7 @@ TEST(LogRecordImpl, LogRecordImplAPI)
 
   IColMeta* col_meta = table_meta ? table_meta->getCol(0) : NULL;
   const char* cname = col_meta ? col_meta->getName() : "NULL";
-  EXPECT_STREQ("col1", cname);
+  EXPECT_STREQ(C1, cname);
   int ctype = col_meta ? col_meta->getType() : -1;
   ASSERT_EQ(ctype, 253);
   const char* is_pk = col_meta ? (col_meta->isPK() ? "true" : "false") : "NULL";
@@ -404,8 +413,8 @@ TEST(LogRecordImpl, LogRecordImplAPI)
   colNames = parser1.parsedColNames();
   ASSERT_NE((void*)NULL, (void*)colNames);
   ASSERT_EQ(2, (int)colNames->size());
-  ASSERT_EQ(0, strcmp("col1", (*colNames)[0]));
-  ASSERT_EQ(0, strcmp("col2", (*colNames)[1]));
+  ASSERT_EQ(0, strcmp(C1, (*colNames)[0]));
+  ASSERT_EQ(0, strcmp(C2, (*colNames)[1]));
   oldCols = parser1.parsedOldCols();
   ASSERT_NE((void*)NULL, (void*)oldCols);
   ASSERT_EQ(2, (int)oldCols->size());
@@ -430,9 +439,9 @@ TEST(LogRecordImpl, LogRecordImplTestPKS1)
   std::string* s5 = new std::string("Hello5");
   std::string* s6 = new std::string("Hello6");
   ITableMeta* t1 = createTableMeta();
-  IColMeta* c1 = createColMeta("col1", 253, 256);
-  IColMeta* c2 = createColMeta("col2", 253, 256);
-  IColMeta* c3 = createColMeta("col3", 253, 256);
+  IColMeta* c1 = createColMeta(C1, 253, 256);
+  IColMeta* c2 = createColMeta(C2, 253, 256);
+  IColMeta* c3 = createColMeta(C3, 253, 256);
   ASSERT_EQ((int)7, (int)strlen(specialString));
   c1->setDefault(specialString, 15);
   const char* defaultStr = c1->getDefault();
@@ -445,10 +454,12 @@ TEST(LogRecordImpl, LogRecordImplTestPKS1)
   t1->append(c2->getName(), c2);
   t1->append(c3->getName(), c3);
 
-  t1->setPKs("col3,col1");
+  std::string pks_str = std::string(C3) + std::string(",") + std::string(C1);
+  t1->setPKs(pks_str.c_str());
   t1->setPkinfo("2,0)");
   // t2->setPKIndice(std::vector<int>(0,2));
-  t1->setUKs("col2,col1,col3");
+  std::string uks_str = std::string(C2) + std::string(",") + std::string(C1) + std::string(",") + std::string(C3);
+  t1->setUKs(uks_str.c_str());
   t1->setUkinfo("(0,1),(1,2),(0)");
 
   void** tableUserDataPtr = t1->getUserDataPtr();
@@ -543,7 +554,8 @@ TEST(LogRecordImpl, LogRecordImplTestPKS1)
   const char* pks = table_meta ? (table_meta->getPKs()) : "NULL";
   ASSERT_TRUE(pks == NULL);
   const char* uks = table_meta ? (table_meta->getUKs()) : "NULL";
-  ASSERT_STREQ(uks, "col1,col2,col3");
+  std::string uks_c = std::string(C1) + std::string(",") + std::string(C2) + std::string(",") + std::string(C3);
+  ASSERT_STREQ(uks, uks_c.c_str());
 
   int64_t column_count = table_meta ? table_meta->getColCount() : -1;
   ASSERT_EQ(column_count, 3);
@@ -558,7 +570,7 @@ TEST(LogRecordImpl, LogRecordImplTestPKS1)
 
   IColMeta* col_meta = table_meta ? table_meta->getCol(0) : NULL;
   const char* cname = col_meta ? col_meta->getName() : "NULL";
-  EXPECT_STREQ("col1", cname);
+  EXPECT_STREQ(C1, cname);
   int ctype = col_meta ? col_meta->getType() : -1;
   ASSERT_EQ(ctype, 253);
   const char* is_pk = col_meta ? (col_meta->isPK() ? "true" : "false") : "NULL";
@@ -595,9 +607,9 @@ TEST(LogRecordImpl, LogRecordImplTestPKS2)
   std::string* s5 = new std::string("Hello5");
   std::string* s6 = new std::string("Hello6");
   ITableMeta* t1 = createTableMeta();
-  IColMeta* c1 = createColMeta("col1", 253, 256);
-  IColMeta* c2 = createColMeta("col2", 253, 256);
-  IColMeta* c3 = createColMeta("col3", 253, 256);
+  IColMeta* c1 = createColMeta(C1, 253, 256);
+  IColMeta* c2 = createColMeta(C2, 253, 256);
+  IColMeta* c3 = createColMeta(C3, 253, 256);
   ASSERT_EQ((int)7, (int)strlen(specialString));
   c1->setDefault(specialString, 15);
   const char* defaultStr = c1->getDefault();

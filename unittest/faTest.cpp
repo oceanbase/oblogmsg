@@ -1,7 +1,7 @@
+#include <gtest/gtest.h>
 #include "MetaInfo.h"
 #include "LogRecord.h"
 #include "LogMsgFactory.h"
-#include <gtest/gtest.h>
 
 using namespace oceanbase::logmessage;
 

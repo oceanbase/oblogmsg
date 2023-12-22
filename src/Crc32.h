@@ -19,6 +19,37 @@ See the Mulan PSL v2 for more details. */
 // - crc32_8bytes   needs only Crc32Lookup[0..7]
 // - crc32_4x8bytes needs only Crc32Lookup[0..7]
 // - crc32_16bytes  needs all of Crc32Lookup
+// define endianess and some integer data types
+#pragma once
+
+#if defined(_MSC_VER) || defined(__MINGW32__)
+typedef unsigned __int8 uint8_t;
+typedef unsigned __int32 uint32_t;
+typedef signed __int32 int32_t;
+
+#define __LITTLE_ENDIAN 1234
+#define __BIG_ENDIAN 4321
+#define __BYTE_ORDER __LITTLE_ENDIAN
+
+#include <xmmintrin.h>
+#ifdef __MINGW32__
+#define PREFETCH(location) __builtin_prefetch(location)
+#else
+#define PREFETCH(location) _mm_prefetch(location, _MM_HINT_T0)
+#endif
+#else
+// uint8_t, uint32_t, in32_t
+#include <cstdint>
+// defines __BYTE_ORDER as __LITTLE_ENDIAN or __BIG_ENDIAN
+#include <sys/param.h>
+
+#ifdef __GNUC__
+#define PREFETCH(location) __builtin_prefetch(location)
+#else
+#define PREFETCH(location) ;
+#endif
+#endif
+
 uint32_t crc32_halfbyte(const void* data, size_t length, uint32_t previousCrc32 = 0);
 uint32_t crc32_1byte(const void* data, size_t length, uint32_t previousCrc32 = 0);
 uint32_t crc32_4bytes(const void* data, size_t length, uint32_t previousCrc32 = 0);
