@@ -635,7 +635,7 @@ LogRecordImpl* createRecordByMeta(ITableMeta* m, int type, bool string_or_point,
   r->setRecordEncoding(m->getEncoding());
   r->setRecordType(type);
   r->setCheckpoint(file_id, file_off);
-  r->setInstance("10.101.112.11:3306");
+  r->setInstance("127.0.0.1:3306");
   if ((file_off += 2048) > (500 * 1024 * 1024)) {
     file_id++;
     file_off = 4;

@@ -8,10 +8,6 @@
 ##########################################################
 **
   https://github.com/oceanbase/oblogmsg.git
-  http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/el/7/aarch64/
-  http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/el/7/x86_64/
-  http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/el/8/aarch64/
-  http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/el/8/x86_64/
   https://github.com/google/googletest.git
   http://license.coscl.org.cn/MulanPSL2
   http://www.intel.com/technology/comms/perfnet/download/CRC_generators.pdf

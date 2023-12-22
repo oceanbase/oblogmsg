@@ -63,7 +63,9 @@ enum SOURCE_TYPE {
   SRC_ORACLE = 0x03,         // Oracle
   SRC_OCEANBASE_1_0 = 0x04,  // Oceanbase V1
   SRC_DB2 = 0x05,            // DB2
-  SRC_UNKNOWN = 0x06
+  SRC_POSTGRESQL = 0x06,     // PostgreSQL
+  SRC_SQLSERVER = 0x07,      // SQLServer
+  SRC_UNKNOWN = 0xff
 };
 
 enum SOURCE_CATEGORY {
@@ -267,6 +269,23 @@ public:
 
   // get serialized string of record directly
   virtual const char* getSerializedString(size_t* size) = 0;
+
+  virtual int putOld(std::string* val, VALUE_ORIGIN origin) = 0;
+  virtual int putNew(std::string* val, VALUE_ORIGIN origin) = 0;
+  virtual int putOld(const char* pos, int len, VALUE_ORIGIN origin) = 0;
+  virtual int putNew(const char* pos, int len, VALUE_ORIGIN origin) = 0;
+  virtual int putNewDiff(std::string* val, VALUE_ORIGIN origin = REDO) = 0;
+  virtual int putNewDiff(const char* pos, int len, VALUE_ORIGIN origin = REDO) = 0;
+  // 获取持久化之前指定列名的 new 值是否为 diff_partial 的形式
+  virtual const std::vector<bool>& getNewValueDiff() const = 0;
+  // 获取持久化之后 new 值的 diff_partial 数组
+  virtual const uint8_t* parsedNewValueDiff(size_t& size) const = 0;
+  // 获取持久化之前 new/old 值的来源
+  virtual std::vector<VALUE_ORIGIN>& getNewValueOrigin() = 0;
+  virtual std::vector<VALUE_ORIGIN>& getOldValueOrigin() = 0;
+  // 获取持久化之后 new/old 值的来源
+  virtual const uint8_t* parsedNewValueOrigins(size_t& size) const = 0;
+  virtual const uint8_t* parsedOldValueOrigins(size_t& size) const = 0;
 };
 
 class LogRecordImpl : public ILogRecord {
@@ -433,6 +452,23 @@ public:
   virtual const char* obTraceInfo();
 
   virtual const char* getSerializedString(size_t* size);
+
+  virtual int putOld(std::string* val, VALUE_ORIGIN origin);
+  virtual int putNew(std::string* val, VALUE_ORIGIN origin);
+  virtual int putOld(const char* pos, int len, VALUE_ORIGIN origin);
+  virtual int putNew(const char* pos, int len, VALUE_ORIGIN origin);
+  virtual int putNewDiff(std::string* val, VALUE_ORIGIN origin = REDO);
+  virtual int putNewDiff(const char* pos, int len, VALUE_ORIGIN origin = REDO);
+  // 获取持久化之前指定列名的 new 值是否为 diff_partial 的形式
+  virtual const std::vector<bool>& getNewValueDiff() const;
+  // 获取持久化之后 new 值的 diff_partial 数组
+  virtual const uint8_t* parsedNewValueDiff(size_t& size) const;
+  // 获取持久化之前 new/old 值的来源
+  virtual std::vector<VALUE_ORIGIN>& getNewValueOrigin();
+  virtual std::vector<VALUE_ORIGIN>& getOldValueOrigin();
+  // 获取持久化之后 new/old 值的来源
+  virtual const uint8_t* parsedNewValueOrigins(size_t& size) const;
+  virtual const uint8_t* parsedOldValueOrigins(size_t& size) const;
 
 protected:
   LogRecInfo* m_lr;

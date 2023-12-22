@@ -86,32 +86,56 @@ ITableMeta* createTableMeta()
 
 static const char* specialString = "addfadf\0sadfcc";
 
-ILogRecord* createLogRecord()
+ILogRecord* createLogRecord(bool useDMB = true, bool useBinlogBuf = false)
 {
-  ILogRecord* lr = LogMsgFactory::createLogRecord("LogRecordImpl", true);
+  ILogRecord* lr = new LogRecordImpl(true, useDMB);
   std::string* s1 = new std::string("Hello1");
   std::string* s3 = new std::string("Hello3");
   std::string* s4 = new std::string("Hello4");
+
+  std::string* full_value = new std::string("{\"name\":\"LiMing\",\"age\",24,\"address\":\"China\"}");
+  std::string* partial_diff = new std::string("{\"op\":\"replace\",\"value\":\"ab\",\"path\":\"$.name\"}");
+
   ITableMeta* t1 = createTableMeta();
   t1->setName("table1");
-  IColMeta* c1 = createColMeta(C1, 253, 256);
-  IColMeta* c2 = createColMeta(C2, 253, 256);
+  IColMeta* c1 = createColMeta("col1", 253, 256);
+  IColMeta* c2 = createColMeta("col2", 253, 256);
+  IColMeta* c3 = createColMeta("col3", 253, 256);
+
   c1->setDefault(specialString, 15);
   c1->getDefault();
   c1->setDefault(specialString);
   c1->getDefault();
   t1->append(c1->getName(), c1);
   t1->append(c2->getName(), c2);
+  t1->append(c3->getName(), c3);
 
   std::string pks_str = std::string(C1) + std::string(",") + std::string(C2);
   t1->setPKs(pks_str.c_str());
   t1->setPKIndice(std::vector<int>(0, 1));
   lr->setTimestamp(1515141568);
   lr->setTableMeta(t1);
-  lr->putOld(s1);
-  lr->putOld(NULL);
-  lr->putNew(s3);
-  lr->putNew(s4);
+
+  if (useBinlogBuf) {
+    BinLogBuf* oldVals = new BinLogBuf[3];
+    BinLogBuf* newVals = new BinLogBuf[3];
+    lr->setOldColumn(oldVals, 3);
+    lr->setNewColumn(newVals, 3);
+    lr->putOld(s1->c_str(), s1->length());
+    lr->putOld(NULL, 0, BACK_QUERY);
+    lr->putOld(full_value->c_str(), full_value->length(), PADDING);
+    lr->putNew(s3->c_str(), s3->length(), PADDING);
+    lr->putNew(s4->c_str(), s4->length(), BACK_QUERY);
+    lr->putNewDiff(partial_diff->c_str(), partial_diff->length(), REDO);
+  } else {
+    lr->putOld(s1, PADDING);
+    lr->putOld(NULL);
+    lr->putOld(full_value, PADDING);
+    lr->putNew(s3);
+    lr->putNew(s4, PADDING);
+    lr->putNewDiff(partial_diff);
+  }
+
   lr->setUserData(NULL);
   lr->setDbname(DB_NAME);
   lr->setTbname("table1");
@@ -137,7 +161,7 @@ void* create(void* argv)
   long matched = 0;
   long mismatched = 0;
   while (*(info->quit) == false) {
-    ILogRecord* sample = createLogRecord();
+    ILogRecord* sample = createLogRecord(true);
     size_t pre_toString_size;
     sample->toString(&pre_toString_size, lmb, true);
 
@@ -170,7 +194,7 @@ TEST(LogRecordImpl, ConcurrencyToString)
   bool quit = false;
   /* Create one sample for copmare */
   LogMsgBuf* lmb = new LogMsgBuf();
-  ILogRecord* sample = createLogRecord();
+  ILogRecord* sample = createLogRecord(true);
   size_t sample_msg_size;
   const char* sample_msg_content = sample->toString(&sample_msg_size, lmb);
 
@@ -700,10 +724,10 @@ TEST(LogRecordImpl, LogRecordImplTestPKS2)
   LogMsgFactory::destroy(table_meta);
 }
 
-TEST(LogRecordImpl, ParseTest)
+TEST(LogRecordImpl, ParseTest1)
 {
   LogMsgBuf* lmb = new LogMsgBuf();
-  ILogRecord* sample = createLogRecord();
+  ILogRecord* sample = createLogRecord(true, false);
   size_t sample_msg_size;
   const char* sample_msg_content;
   // record header field
@@ -712,7 +736,7 @@ TEST(LogRecordImpl, ParseTest)
   int recordType = 1;
   long timeStamp = 1663253940;
   bool b = true;
-  const uint64_t LOGREC_SUB_VERSION = 0x0200000000000000;  // sub version num
+  const uint64_t LOGREC_SUB_VERSION = 0x0500000000000000;  // sub version num
   uint64_t setId = 123456789;
   uint64_t getId = setId | LOGREC_SUB_VERSION;
   int file = 10;
@@ -721,6 +745,16 @@ TEST(LogRecordImpl, ParseTest)
   // record tail field
   int threadId = 0xFFFF0000;
   int usec = 123456789;
+
+  ASSERT_FALSE(sample->getNewValueDiff()[0]);
+  ASSERT_FALSE(sample->getNewValueDiff()[1]);
+  ASSERT_TRUE(sample->getNewValueDiff()[2]);
+  ASSERT_EQ((u_int8_t) 2, sample->getOldValueOrigin()[0]);
+  ASSERT_EQ((u_int8_t) 0, sample->getOldValueOrigin()[1]);
+  ASSERT_EQ((u_int8_t) 2, sample->getOldValueOrigin()[2]);
+  ASSERT_EQ((u_int8_t) 0, sample->getNewValueOrigin()[0]);
+  ASSERT_EQ((u_int8_t) 2, sample->getNewValueOrigin()[1]);
+  ASSERT_EQ((u_int8_t) 0, sample->getNewValueOrigin()[2]);
 
   sample_msg_content = sample->toString(&sample_msg_size, lmb);
 
@@ -756,6 +790,120 @@ TEST(LogRecordImpl, ParseTest)
 
   ASSERT_EQ(threadId, sample2->getThreadId());
   ASSERT_EQ(usec, sample2->getRecordUsec());
+
+  size_t diff_size;
+  const uint8_t* new_cols_value_diff = sample2->parsedNewValueDiff(diff_size);
+  ASSERT_EQ((uint8_t) 0, new_cols_value_diff[0]);
+  ASSERT_EQ((uint8_t) 0, new_cols_value_diff[1]);
+  ASSERT_EQ((uint8_t) 1, new_cols_value_diff[2]);
+  ASSERT_EQ((size_t) 3, diff_size);
+  size_t old_value_origin_size;
+  const uint8_t* old_value_origins = sample2->parsedOldValueOrigins(old_value_origin_size);
+  ASSERT_EQ((uint8_t) PADDING, old_value_origins[0]);
+  ASSERT_EQ((uint8_t) REDO, old_value_origins[1]);
+  ASSERT_EQ((uint8_t) PADDING, old_value_origins[2]);
+  ASSERT_EQ((size_t) 3, old_value_origin_size);
+  size_t new_value_origin_size;
+  const uint8_t* new_value_origins = sample2->parsedNewValueOrigins(new_value_origin_size);
+  ASSERT_EQ((uint8_t) REDO, new_value_origins[0]);
+  ASSERT_EQ((uint8_t) PADDING, new_value_origins[1]);
+  ASSERT_EQ((uint8_t) REDO, new_value_origins[2]);
+  ASSERT_EQ((size_t) 3, new_value_origin_size);
+
+  LogMsgFactory::destroy(sample);
+  LogMsgFactory::destroy(sample1);
+  LogMsgFactory::destroy(sample2);
+}
+
+TEST(LogRecordImpl, ParseTest2)
+{
+  LogMsgBuf* lmb = new LogMsgBuf();
+  ILogRecord* sample = createLogRecord(false, true);
+  size_t sample_msg_size;
+  const char* sample_msg_content;
+  // record header field
+  int srcType = 1;
+  int category = 1;
+  int recordType = 1;
+  long timeStamp = 1663253940;
+  bool b = true;
+  const uint64_t BR_SUB_VERSION = 0x0500000000000000;  // sub version num
+  uint64_t setId = 123456789;
+  uint64_t getId = setId | BR_SUB_VERSION;
+  int file = 10;
+  int offset = 99;
+  int sqlNo = 100;
+  // record tail field
+  int threadId = 0xFFFF0000;
+  int usec = 123456789;
+  // record data field
+  const char* tableName = "table";
+  const char* dbName = "database";
+
+  unsigned int count;
+  ASSERT_FALSE(sample->newCols(count)[0].m_diff_val);
+  ASSERT_FALSE(sample->newCols(count)[1].m_diff_val);
+  ASSERT_TRUE(sample->newCols(count)[2].m_diff_val);
+  ASSERT_EQ((u_int8_t) REDO, sample->oldCols(count)[0].m_origin);
+  ASSERT_EQ((u_int8_t) BACK_QUERY, sample->oldCols(count)[1].m_origin);
+  ASSERT_EQ((u_int8_t) PADDING, sample->oldCols(count)[2].m_origin);
+  ASSERT_EQ((u_int8_t) PADDING, sample->newCols(count)[0].m_origin);
+  ASSERT_EQ((u_int8_t) BACK_QUERY, sample->newCols(count)[1].m_origin);
+  ASSERT_EQ((u_int8_t) REDO, sample->newCols(count)[2].m_origin);
+
+  sample_msg_content = sample->toString(&sample_msg_size, lmb);
+  ILogRecord* sample1 = new LogRecordImpl(false, false);
+  sample1->parse(sample_msg_content, sample_msg_size);
+  // set record header field
+  sample1->setSrcType(srcType);
+  sample1->setSrcCategory(category);
+  sample1->setRecordType(recordType);
+  sample1->setTimestamp(timeStamp);
+  sample1->setFirstInLogevent(b);
+  sample1->setId(setId);
+  sample1->setCheckpoint(file, offset);
+  sample1->setSqlNo(sqlNo);
+  // set record tail field
+  sample1->setThreadId(threadId);
+  sample1->setRecordUsec(usec);
+  // set record data field
+  sample1->setTbname(tableName);
+  sample1->setDbname(dbName);
+  ASSERT_STREQ(tableName, sample1->tbname());
+  ASSERT_STREQ(dbName, sample1->dbname());
+  sample_msg_content = sample1->toString(&sample_msg_size, lmb);
+  ILogRecord* sample2 = new LogRecordImpl(false, false);
+  sample2->parse(sample_msg_content, sample_msg_size);
+  ASSERT_EQ(srcType, sample2->getSrcType());
+  ASSERT_EQ(category, sample2->getSrcCategory());
+  ASSERT_EQ(recordType, sample2->recordType());
+  ASSERT_EQ(timeStamp, sample2->getTimestamp());
+  ASSERT_EQ(b, sample2->firstInLogevent());
+  ASSERT_EQ(getId, sample2->id());
+  ASSERT_EQ(file, sample2->getCheckpoint1());
+  ASSERT_EQ(offset, sample2->getCheckpoint2());
+  ASSERT_EQ(sqlNo, sample2->sqlNo());
+  ASSERT_EQ(threadId, sample2->getThreadId());
+  ASSERT_EQ(usec, sample2->getRecordUsec());
+
+  size_t size;
+  const uint8_t* new_cols_value_diff = sample2->parsedNewValueDiff(size);
+  ASSERT_EQ((uint8_t) 0, new_cols_value_diff[0]);
+  ASSERT_EQ((uint8_t) 0, new_cols_value_diff[1]);
+  ASSERT_EQ((uint8_t) 1, new_cols_value_diff[2]);
+  ASSERT_EQ((size_t) 3, size);
+  size_t old_value_origin_size;
+  const uint8_t* old_value_origins = sample2->parsedOldValueOrigins(old_value_origin_size);
+  ASSERT_EQ((uint8_t) REDO, old_value_origins[0]);
+  ASSERT_EQ((uint8_t) BACK_QUERY, old_value_origins[1]);
+  ASSERT_EQ((uint8_t) PADDING, old_value_origins[2]);
+  ASSERT_EQ((size_t) 3, old_value_origin_size);
+  size_t new_value_origin_size;
+  const uint8_t* new_value_origins = sample2->parsedNewValueOrigins(new_value_origin_size);
+  ASSERT_EQ((uint8_t) PADDING, new_value_origins[0]);
+  ASSERT_EQ((uint8_t) BACK_QUERY, new_value_origins[1]);
+  ASSERT_EQ((uint8_t) REDO, new_value_origins[2]);
+  ASSERT_EQ((size_t) 3, new_value_origin_size);
 
   LogMsgFactory::destroy(sample);
   LogMsgFactory::destroy(sample1);
