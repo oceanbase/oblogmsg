@@ -110,7 +110,8 @@ ILogRecord* createLogRecord(bool useDMB = true, bool useBinlogBuf = false)
   t1->append(c2->getName(), c2);
   t1->append(c3->getName(), c3);
 
-  t1->setPKs("col1,col2");
+  std::string pks_str = std::string(C1) + std::string(",") + std::string(C2);
+  t1->setPKs(pks_str.c_str());
   t1->setPKIndice(std::vector<int>(0, 1));
   lr->setTimestamp(1515141568);
   lr->setTableMeta(t1);
