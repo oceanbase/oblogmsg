@@ -32,7 +32,7 @@ const uint64_t LOGREC_SUB_VERSION_2 = 0x0200000000000000;  // 版本号 3.2
 const uint64_t LOGREC_SUB_VERSION_3 = 0x0300000000000000;  // 版本号 3.3
 const uint64_t LOGREC_SUB_VERSION_4 = 0x0400000000000000;  // 版本号 3.4
 const uint64_t LOGREC_SUB_VERSION_5 = 0x0500000000000000;  // 版本号 3.5
-const uint64_t LOGREC_SUB_VERSION = 0x0500000000000000;  // sub version num
+const uint64_t LOGREC_SUB_VERSION = LOGREC_SUB_VERSION_5;  // sub version num
 #define GET_LOGREC_SUB_VERSION(v) ((v)&0xFF00000000000000)
 const uint64_t LOGREC_INVALID_ID = 0;
 bool LOGREC_CRC = false;
@@ -172,6 +172,9 @@ struct LogRecInfo {
   string m_ob_trace_info;
   bool useLMB;
   bool m_reservedMemory;
+  // 默认版本号与当前最新版本号保持一致，当时从已有的 msgbuf 解析数据时不能改变原有数据中的版本号
+  uint64_t m_logrec_sub_version = LOGREC_SUB_VERSION;
+
   LogRecInfo(time_t timestamp, ITableMeta* tblMeta)
       : m_creatingMode(true),
         m_parsedOK(false),
@@ -568,6 +571,9 @@ struct LogRecInfo {
       if (m_endInfo->m_crc != crc32_fast((char*)ptr, (const char*)v - (const char*)ptr + offsetof(EndOfLogMsg, m_crc)))
         return -5;
     }
+    
+    // 保留原有的版本号
+    m_logrec_sub_version = GET_LOGREC_SUB_VERSION(m_posInfo->m_id);
     m_parsedOK = true;
     return 0;
   }
@@ -1442,7 +1448,7 @@ struct LogRecInfo {
 
   void setId(uint64_t id)
   {
-    m_posInfo->m_id = LOGREC_SUB_VERSION | id;
+    m_posInfo->m_id = m_logrec_sub_version | id;
   }
 
   void setThreadId(uint32_t thread_id)

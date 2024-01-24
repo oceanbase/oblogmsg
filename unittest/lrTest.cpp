@@ -145,6 +145,7 @@ ILogRecord* createLogRecord(bool useDMB = true, bool useBinlogBuf = false)
   lr->setSrcType(SRC_MYSQL);
   lr->setSrcCategory(SRC_PART_RECORDED);
   lr->setRecordEncoding("utf8");
+  lr->setId(1);
   return lr;
 }
 
