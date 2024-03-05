@@ -1286,7 +1286,7 @@ struct LogRecInfo {
 
   void setOldColValuesOrigin(const BinLogBuf* buf, int size, LogMsgBuf* lmb = NULL) 
   {
-    uint8_t* col_values_origin = new uint8_t[size];
+    uint8_t* col_values_origin;
     if (buf == NULL || size == 0)
     {
       col_values_origin = new uint8_t[0];
@@ -1330,7 +1330,7 @@ struct LogRecInfo {
 
   void setNewColValuesOrigin(const BinLogBuf* buf, int size, LogMsgBuf* lmb = NULL) 
   {
-    uint8_t* col_values_origin = new uint8_t[size];
+    uint8_t* col_values_origin;
     if (buf == NULL || size == 0)
     {
       col_values_origin = new uint8_t[0];
