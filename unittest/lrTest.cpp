@@ -86,7 +86,7 @@ ITableMeta* createTableMeta()
 
 static const char* specialString = "addfadf\0sadfcc";
 
-ILogRecord* createLogRecord(bool useDMB = true, bool useBinlogBuf = false)
+ILogRecord* createLogRecord(RecordType type, bool useDMB = true, bool useBinlogBuf = false)
 {
   ILogRecord* lr = new LogRecordImpl(true, useDMB);
   std::string* s1 = new std::string("Hello1");
@@ -121,16 +121,20 @@ ILogRecord* createLogRecord(bool useDMB = true, bool useBinlogBuf = false)
     BinLogBuf* newVals = new BinLogBuf[3];
     lr->setOldColumn(oldVals, 3);
     lr->setNewColumn(newVals, 3);
-    lr->putOld(s1->c_str(), s1->length());
-    lr->putOld(NULL, 0, BACK_QUERY);
-    lr->putOld(full_value->c_str(), full_value->length(), PADDING);
+    if (type == EUPDATE) {
+      lr->putOld(s1->c_str(), s1->length());
+      lr->putOld(NULL, 0, BACK_QUERY);
+      lr->putOld(full_value->c_str(), full_value->length(), PADDING);
+    }
     lr->putNew(s3->c_str(), s3->length(), PADDING);
     lr->putNew(s4->c_str(), s4->length(), BACK_QUERY);
     lr->putNewDiff(partial_diff->c_str(), partial_diff->length(), REDO);
   } else {
-    lr->putOld(s1, PADDING);
-    lr->putOld(NULL);
-    lr->putOld(full_value, PADDING);
+    if (type == EUPDATE) {
+      lr->putOld(s1, PADDING);
+      lr->putOld(NULL);
+      lr->putOld(full_value, PADDING);
+    }
     lr->putNew(s3);
     lr->putNew(s4, PADDING);
     lr->putNewDiff(partial_diff);
@@ -140,7 +144,7 @@ ILogRecord* createLogRecord(bool useDMB = true, bool useBinlogBuf = false)
   lr->setDbname(DB_NAME);
   lr->setTbname("table1");
   lr->setDBMeta(createDBMeta());
-  lr->setRecordType(EUPDATE);
+  lr->setRecordType(type);
   lr->setCheckpoint(BINLOG_FILE, BINLOG_POS);
   lr->setSrcType(SRC_MYSQL);
   lr->setSrcCategory(SRC_PART_RECORDED);
@@ -162,7 +166,7 @@ void* create(void* argv)
   long matched = 0;
   long mismatched = 0;
   while (*(info->quit) == false) {
-    ILogRecord* sample = createLogRecord(true);
+    ILogRecord* sample = createLogRecord(EUPDATE, true);
     size_t pre_toString_size;
     sample->toString(&pre_toString_size, lmb, true);
 
@@ -195,7 +199,7 @@ TEST(LogRecordImpl, ConcurrencyToString)
   bool quit = false;
   /* Create one sample for copmare */
   LogMsgBuf* lmb = new LogMsgBuf();
-  ILogRecord* sample = createLogRecord(true);
+  ILogRecord* sample = createLogRecord(EUPDATE, true);
   size_t sample_msg_size;
   const char* sample_msg_content = sample->toString(&sample_msg_size, lmb);
 
@@ -728,7 +732,7 @@ TEST(LogRecordImpl, LogRecordImplTestPKS2)
 TEST(LogRecordImpl, ParseTest1)
 {
   LogMsgBuf* lmb = new LogMsgBuf();
-  ILogRecord* sample = createLogRecord(true, false);
+  ILogRecord* sample = createLogRecord(EUPDATE, true, false);
   size_t sample_msg_size;
   const char* sample_msg_content;
   // record header field
@@ -819,7 +823,7 @@ TEST(LogRecordImpl, ParseTest1)
 TEST(LogRecordImpl, ParseTest2)
 {
   LogMsgBuf* lmb = new LogMsgBuf();
-  ILogRecord* sample = createLogRecord(false, true);
+  ILogRecord* sample = createLogRecord(EUPDATE, false, true);
   size_t sample_msg_size;
   const char* sample_msg_content;
   // record header field
@@ -909,6 +913,57 @@ TEST(LogRecordImpl, ParseTest2)
   LogMsgFactory::destroy(sample);
   LogMsgFactory::destroy(sample1);
   LogMsgFactory::destroy(sample2);
+}
+
+TEST(LogRecordImpl, ParsePUTTest)
+{
+  LogMsgBuf* lmb = new LogMsgBuf();
+  ILogRecord* sample = createLogRecord(EPUT, false, true);
+  size_t sample_msg_size;
+  const char* sample_msg_content;
+  // record header field
+  int srcType = 12;
+  int category = 1;
+  int recordType = 1;
+  long timeStamp = 1663253940;
+  bool b = true;
+  const uint64_t BR_SUB_VERSION = 0x0500000000000000;  // sub version num
+  uint64_t setId = 123456789;
+  uint64_t getId = setId | BR_SUB_VERSION;
+  int file = 10;
+  int offset = 99;
+  int sqlNo = 100;
+  // record tail field
+  int threadId = 0xFFFF0000;
+  int usec = 123456789;
+  // record data field
+  const char* tableName = "table";
+  const char* dbName = "database";
+
+  unsigned int count;
+  ASSERT_FALSE(sample->newCols(count)[0].m_diff_val);
+  ASSERT_FALSE(sample->newCols(count)[1].m_diff_val);
+  ASSERT_TRUE(sample->newCols(count)[2].m_diff_val);
+  ASSERT_EQ((u_int8_t) PADDING, sample->newCols(count)[0].m_origin);
+  ASSERT_EQ((u_int8_t) BACK_QUERY, sample->newCols(count)[1].m_origin);
+  ASSERT_EQ((u_int8_t) REDO, sample->newCols(count)[2].m_origin);
+
+  sample_msg_content = sample->toString(&sample_msg_size, lmb);
+  ILogRecord* sample1 = new LogRecordImpl(false, false);
+  sample1->parse(sample_msg_content, sample_msg_size);
+  StrArray* newCols = sample1->parsedNewCols();
+  ASSERT_NE((void*)NULL, (void*)newCols);
+  uint32_t size = newCols->size();
+  ASSERT_EQ((size_t)3, size);
+  ASSERT_STREQ("Hello3", (*newCols)[0]);
+  ASSERT_STREQ("Hello4", (*newCols)[1]);
+  ASSERT_STREQ("{\"op\":\"replace\",\"value\":\"ab\",\"path\":\"$.name\"}", (*newCols)[2]);
+
+  StrArray* oldCols = sample1->parsedOldCols();
+  ASSERT_EQ((void*)NULL, (void*)oldCols);
+
+  LogMsgFactory::destroy(sample);
+  LogMsgFactory::destroy(sample1);
 }
 
 int main(int argc, char* argv[])
