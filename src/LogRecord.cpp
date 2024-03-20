@@ -1622,6 +1622,7 @@ struct LogRecInfo {
       lmb->setHead(sizeof(PosOfLogMsg_vc));
     switch (op) {
       case EINSERT:
+      case EPUT:
       case EDELETE:
       case EUPDATE:
       case EREPLACE:
@@ -2544,7 +2545,7 @@ const char* LogRecordImpl::parseColumnValue(const char* columnName, size_t* size
   for (int i = colNames->size() - 1; i >= 0; i--) {
     if (is_equal_str((*colNames)[i], columnName)) {
       *columnType = colTypes[i];
-      if (type == EUPDATE || type == EINSERT)
+      if (type == EUPDATE || type == EINSERT || type == EPUT)
         m_lr->elementAtNew(i, value, *size);
       else if (type == EDELETE)
         m_lr->elementAtOld(i, value, *size);

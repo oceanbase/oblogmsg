@@ -59,7 +59,7 @@ cmake --install . --prefix=${OBLOGMSG_INSTALL_PATH}
         功能描述:
             设置一条 record 的操作类型
         参数：
-            aType 一般有七种类型 插入操作0x00 (EINSERT),更新操作0x01 (EUPDATE),删除操作0x02 (EDELETE),心跳包0x04 (HEARTBEAT),事物开始0x06 (EBEGIN),事物提交0x07 (ECOMMIT), DDL 操作0x08 (EDDL)
+            aType 一般有七种类型 插入操作0x00 (EINSERT),更新操作0x01 (EUPDATE),删除操作0x02 (EDELETE),心跳包0x04 (HEARTBEAT),事物开始0x06 (EBEGIN),事物提交0x07 (ECOMMIT), DDL 操作0x08 (EDDL), 强制更新操作 0x0c (EPUT)
         返回值：
             固定返回0
 
