@@ -1,0 +1,66 @@
+version: "1.5"
+
+stages: # 流水线定义
+  - 静态扫描
+  - STC扫描
+  # - 单元测试
+
+only:
+  triggerType:
+    - pullRequest
+    - tagPush
+
+STC安全扫描:
+  stage: STC扫描
+  triggerType:
+    - tagPush
+    - pullRequest
+  only:
+    triggerType:
+      - tagPush
+      - pullRequest
+  plugin: STC
+  checkRule:
+    - stc1 = 0 && stc2 = 0
+
+c++静态扫描:
+  stage: 静态扫描
+  triggerType:
+    - tagPush
+    - pullRequest
+  only:
+    triggerType:
+      - tagPush
+      - pullRequest
+  component: cpp-sast
+  inputs:
+    excludes: # 选填项，排除哪些项不进行代码扫描
+      - "**/unittest/**"
+    codePath: "./src" # 选填项，选择扫描目录，大库支持
+    #suppressionsList: "suppressions.txt" # 选填项，如果需要自定义扫描配置，填入配置文件路径
+  config:
+    execute:
+      timeout: 600 # 选填项，任务超时时间
+      isAllowSkip: true # 是否允许跳过组件，默认是不允许跳过
+    afterExecute:
+      checkRule:  # 选填项，卡点策略
+        - ${{outputs.critical}} <= 4 && ${{outputs.blocker}} <= 0 && ${{outputs.major}} <= 0
+
+#单元测试:
+#  stage: 单元测试
+#  triggerType:
+#    - tagPush
+#    - pullRequest
+#  only:
+#    triggerType:
+#      - tagPush
+#      - pullRequest
+#  aciTags: DOCKER # 指定使用哪些runner
+#  agent:
+#    docker:
+#      image: reg.docker.alibaba-inc.com/oms/xlog-store-el7:latest
+#  script: # 在container中执行的命令
+#    - sh package.sh -e business -v test -d OFF
+#    - ./packenv/test_base
+#  checkRule:
+#    - stc1 = 0 && stc2 = 0
