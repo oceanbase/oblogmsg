@@ -7,6 +7,7 @@ PWD="$(cd $(dirname $0); pwd)"
 
 OS_ARCH="$(uname -m)" || exit 1
 OS_RELEASE="0"
+AL3_RELEASE="0"
 
 if [[ ! -f /etc/os-release ]]; then
   echo "[ERROR] os release info not found" 1>&2 && exit 1
@@ -25,6 +26,12 @@ function compat_centos8() {
 function compat_centos7() {
   echo "[NOTICE] '$PNAME' is compatible with CentOS 7, use el7 dependencies list"
   OS_RELEASE=7
+}
+
+function compat_alinux3() {
+  echo "[NOTICE] '$PNAME' is compatible with Alinux3, use al8 dependencies list"
+  AL3_RELEASE="1"
+  OS_RELEASE=8
 }
 
 function not_supported() {
@@ -78,6 +85,9 @@ function get_os_release() {
       rocky)
         version_ge "8.0" && compat_centos8 && return
         ;;
+      alinux3)
+        version_ge "8.0" && compat_alinux3 && return
+        ;;
     esac
   elif [[ "${OS_ARCH}x" == "aarch64x" ]]; then
     case "$ID" in
@@ -88,6 +98,9 @@ function get_os_release() {
       centos)
         version_ge "8.0" && OS_RELEASE=8 && return
         version_ge "7.0" && OS_RELEASE=7 && return
+        ;;
+      alinux3)
+        version_ge "8.0" && compat_alinux3 && return
         ;;
     esac
   elif [[ "${OS_ARCH}x" == "sw_64x" ]]; then
@@ -102,7 +115,12 @@ function get_os_release() {
 
 get_os_release || exit 1
 
-OS_TAG="el$OS_RELEASE.$OS_ARCH"
+if [[ "${AL3_RELEASE}x" == "1x" ]]; then
+    OS_TAG="al$OS_RELEASE.$OS_ARCH"
+else
+    OS_TAG="el$OS_RELEASE.$OS_ARCH"
+fi
+
 DEP_FILE="logmessage.${OS_TAG}.deps"
 
 echo -e "check dependencies profile for ${DEP_FILE}... \c"

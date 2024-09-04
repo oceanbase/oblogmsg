@@ -1,0 +1,9 @@
+[target-default]
+os=7
+arch=x86_64
+repo=http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/al/3/x86_64/
+
+[tools]
+obdevtools-cmake-3.22.1-112024083015.al8.x86_64.rpm
+obdevtools-gcc9-9.3.0-122024083015.al8.x86_64.rpm
+
