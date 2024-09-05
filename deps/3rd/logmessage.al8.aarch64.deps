@@ -6,3 +6,4 @@ repo=http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/al/3/aarch6
 [tools]
 obdevtools-cmake-3.22.1-112024083015.al8.aarch64.rpm
 obdevtools-gcc9-9.3.0-122024083015.al8.aarch64.rpm
+
