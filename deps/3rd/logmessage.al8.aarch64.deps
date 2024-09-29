@@ -1,9 +1,9 @@
 [target-default]
-os=7
+os=8
 arch=aarch64
-repo=http://yum-test.obvos.alibaba-inc.com/oceanbase/development-kit/al/3/aarch64/
+repo=http://mirrors.aliyun.com/oceanbase/development-kit/al/8/aarch64/
 
 [tools]
-obdevtools-cmake-3.22.1-112024083015.al8.aarch64.rpm
-obdevtools-gcc9-9.3.0-122024083015.al8.aarch64.rpm
+obdevtools-cmake-3.22.1-122024092710.al8.aarch64.rpm
+obdevtools-gcc9-9.3.0-152024092711.al8.aarch64.rpm
 
